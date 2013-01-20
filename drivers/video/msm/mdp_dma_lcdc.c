@@ -38,6 +38,12 @@
 #include "msm_fb.h"
 #include "mdp4.h"
 
+#ifdef CONFIG_FB_MSM_LCDC_OLED_WVGA //ZTE_LCD_LHT_20100810_001
+extern void lcdc_lead_sleep(void);
+extern void lcdc_truly_sleep(void);
+extern u32 LcdPanleID;
+#endif
+
 #ifdef CONFIG_FB_MSM_MDP40
 #define LCDC_BASE	0xC0000
 #define DTV_BASE	0xD0000
@@ -55,6 +61,7 @@ extern uint32 mdp_intr_mask;
 
 int first_pixel_start_x;
 int first_pixel_start_y;
+static bool firstupdate = TRUE; //LCD_LUYA_20100610_01
 
 int mdp_lcdc_on(struct platform_device *pdev)
 {
@@ -124,7 +131,17 @@ int mdp_lcdc_on(struct platform_device *pdev)
 	else if (mfd->fb_imgType == MDP_RGBA_8888)
 		dma2_cfg_reg |= DMA_PACK_PATTERN_BGR;
 	else
+//ZTE_LCD_LUYA_20100325_001
+	{
+#ifdef CONFIG_FB_MSM_LCDC_OLED_WVGA
+		if(mfd->panel_info.bl_max==32)
+			dma2_cfg_reg |= DMA_PACK_PATTERN_RGB;
+		else
+			dma2_cfg_reg |= DMA_PACK_PATTERN_BGR;
+#else
 		dma2_cfg_reg |= DMA_PACK_PATTERN_RGB;
+#endif
+	}
 
 	if (bpp == 2)
 		dma2_cfg_reg |= DMA_IBUF_FORMAT_RGB565;
@@ -165,7 +182,7 @@ int mdp_lcdc_on(struct platform_device *pdev)
 #endif
 
 	/* starting address */
-	MDP_OUTP(MDP_BASE + dma_base + 0x8, (uint32) buf);
+//	MDP_OUTP(MDP_BASE + dma_base + 0x8, (uint32) buf);
 	/* active window width and height */
 	MDP_OUTP(MDP_BASE + dma_base + 0x4, ((fbi->var.yres) << 16) |
 						(fbi->var.xres));
@@ -304,6 +321,13 @@ int mdp_lcdc_off(struct platform_device *pdev)
 	}
 #endif
 
+#ifdef CONFIG_FB_MSM_LCDC_OLED_WVGA //ZTE_LCD_LHT_20100810_001
+	if(LcdPanleID==42)
+		lcdc_lead_sleep();
+	if(LcdPanleID==41)
+		lcdc_truly_sleep();
+#endif
+
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
 	MDP_OUTP(MDP_BASE + timer_base, 0);
@@ -314,7 +338,7 @@ int mdp_lcdc_off(struct platform_device *pdev)
 	ret = panel_next_off(pdev);
 
 	/* delay to make sure the last frame finishes */
-	mdelay(100);
+	msleep(20); //ZTE_LCD_LUYA_20100629_001
 
 	return ret;
 }
@@ -350,8 +374,15 @@ void mdp_lcdc_update(struct msm_fb_data_type *mfd)
 	}
 #endif
 
-	/* starting address */
-	MDP_OUTP(MDP_BASE + dma_base + 0x8, (uint32) buf);
+	if(firstupdate) //LCD_LUYA_20100610_01
+	{
+		firstupdate = FALSE;
+	}
+	else
+	{
+		/* starting address */
+		MDP_OUTP(MDP_BASE + dma_base + 0x8, (uint32) buf);
+	}
 
 	/* enable LCDC irq */
 	spin_lock_irqsave(&mdp_spin_lock, flag);

@@ -120,6 +120,7 @@ struct mmc_host {
 	unsigned int		f_min;
 	unsigned int		f_max;
 	u32			ocr_avail;
+	struct notifier_block	pm_notify;
 
 #define MMC_VDD_165_195		0x00000080	/* VDD voltage 1.65 - 1.95 */
 #define MMC_VDD_20_21		0x00000100	/* VDD voltage 2.0 ~ 2.1 */
@@ -216,6 +217,10 @@ struct mmc_host {
 	} embedded_sdio_data;
 #endif
 
+#ifdef CONFIG_ATH_WIFI
+    int    last_suspend_error;
+#endif
+
 #ifdef CONFIG_MMC_PERF_PROFILING
 	struct {
 
@@ -295,6 +300,12 @@ int mmc_card_can_sleep(struct mmc_host *host);
 int mmc_host_enable(struct mmc_host *host);
 int mmc_host_disable(struct mmc_host *host);
 int mmc_host_lazy_disable(struct mmc_host *host);
+#ifdef CONFIG_PM
+int mmc_pm_notify(struct notifier_block *notify_block, unsigned long mode,
+		  void *unused);
+#else
+#define mmc_pm_notify NULL
+#endif
 
 static inline void mmc_set_disable_delay(struct mmc_host *host,
 					 unsigned int disable_delay)

@@ -14,6 +14,20 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+/*======================================================
+when         who           what, where, why                          comment tag
+--------     ----          -------------------------------------    ------------------------------
+2010-06-29   luya    	modify mdelay to msleep				ZTE_LCD_LUYA_20100629_001
+2010-06-22   lht		支持工程模式读屏信息						ZTE_LCD_LHT_20100622_001
+2010-06-17   lht		decrease FTM  backlight level				ZTE_LCD_LHT_20100617_001
+2010-06-11   lht		支持工程模式读屏信息						ZTE_LCD_LHT_20100611_001
+2010-06-10   luya		修改BKL level								LCD_LUYA_20100610_01
+2010-05-05   lht		修改fix-linelength，开机图片				ZTE_LCD_LHT_20100505_001
+2010-03-25   luya		修改开机背光亮度							ZTE_LCD_LUYA_20100325_001
+2010-02-21   luya		change delay when wakeup                    ZTE_LCD_LUYA_20100221_001        
+2009-12-21   luya    	change logo file name 					 	ZTE_LCD_LUYA_20091221_001
+2009-11-28   hp             decrease initial brightness of backlight  ZTE_BACKLIGHT_HP_002
+=======================================================*/
 
 #include <linux/module.h>
 #include <linux/moduleparam.h>
@@ -47,6 +61,17 @@
 #include "mdp.h"
 #include "mdp4.h"
 
+//ZTE_LCD_LHT_20100622_001 start
+#include <linux/proc_fs.h>
+static struct proc_dir_entry * d_entry;
+static int lcd_debug;
+char  module_name[50]={"0"};
+void init_lcd_proc(void);
+void deinit_lcd_proc(void);
+static int msm_lcd_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data);
+static int msm_lcd_write_proc(struct file *file, const char __user *buffer,unsigned long count, void *data);
+//ZTE_LCD_LHT_20100622_001 end
+
 #ifdef CONFIG_FB_MSM_LOGO
 #define INIT_IMAGE_FILE "/logo.rle"
 extern int load_565rle_image(char *filename);
@@ -60,6 +85,8 @@ static struct platform_device *pdev_list[MSM_FB_MAX_DEV_LIST];
 static int pdev_list_cnt;
 
 int vsync_mode = 1;
+
+u32 LcdPanleID=(u32)LCD_PANEL_NOPANEL; //ZTE_LCD_LHT_20100611_001
 
 #define MAX_FBI_LIST 32
 static struct fb_info *fbi_list[MAX_FBI_LIST];
@@ -236,10 +263,15 @@ static int msm_fb_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	mfd->panel_info.frame_count = 0;
-	mfd->bl_level = mfd->panel_info.bl_max;
+//ZTE_LCD_LUYA_20100325_001,LCD_LUYA_20100610_01 2009-11-28 decrease initial brightness of backlight
+	mfd->bl_level = mfd->panel_info.bl_max/6;
 #ifdef CONFIG_FB_MSM_OVERLAY
 	mfd->overlay_play_enable = 1;
 #endif
+
+//ZTE_LCD_LHT_20100622_001 start
+	init_lcd_proc();
+//ZTE_LCD_LHT_20100622_001 end
 
 	rc = msm_fb_register(mfd);
 	if (rc)
@@ -522,9 +554,10 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
 		if (!mfd->panel_power_on) {
-			mdelay(100);
+			//mdelay(100);
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
+				msleep(30); //ZTE_LCD_LUYA_20100221_001 ZTE_LCD_LUYA_20100629_001
 				mfd->panel_power_on = TRUE;
 
 				msm_fb_set_backlight(mfd,
@@ -554,14 +587,17 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 
 			mfd->op_enable = FALSE;
 			curr_pwr_state = mfd->panel_power_on;
+			msm_fb_set_backlight(mfd, 0, 0); //ZTE_LCD_LUYA_20100201_001
 			mfd->panel_power_on = FALSE;
 
-			mdelay(100);
+			//mdelay(100); //ZTE_LCD_LUYA_20100629_001
 			ret = pdata->off(mfd->pdev);
 			if (ret)
 				mfd->panel_power_on = curr_pwr_state;
 
-			msm_fb_set_backlight(mfd, 0, 0);
+			/* ZTE_BACKLIGHT_WLY_001 @2009-10-29 backlight go to dim, begin*/
+			//msm_fb_set_backlight(mfd, 0, 0);
+			/* ZTE_BACKLIGHT_WLY_001 @2009-10-29 backlight go to dim, end*/
 			mfd->op_enable = TRUE;
 		}
 		break;
@@ -869,10 +905,10 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	   32 pixels for color buffers, so for the cases where the GPU
 	   is writing directly to fb0, the framebuffer pitch
 	   also needs to be 32 pixel aligned */
-
-	if (mfd->index == 0)
-		fix->line_length = ALIGN(panel_info->xres, 32) * bpp;
-	else
+	//ZTE_LCD_LHT_20100505_001
+	//if (mfd->index == 0)
+	//	fix->line_length = ALIGN(panel_info->xres, 32) * bpp;
+	//else
 		fix->line_length = panel_info->xres * bpp;
 
 	fix->smem_len = fix->line_length * panel_info->yres * mfd->fb_page;
@@ -1052,6 +1088,10 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 			msm_fb_debugfs_file_create(sub_dir, "frame_count",
 						   (u32 *) &mfd->panel_info.
 						   frame_count);
+//add by zhanggc for test ZTE_LCD_LHT_20100611_001
+			printk("[ZGC]:LcdPanleID = %d\n",LcdPanleID);
+			msm_fb_debugfs_file_create(sub_dir, "lcd_type",
+						   (u32 *) &LcdPanleID);
 
 
 			switch (mfd->dest) {
@@ -2575,6 +2615,128 @@ static int msm_fb_register_driver(void)
 {
 	return platform_driver_register(&msm_fb_driver);
 }
+
+//ZTE_LCD_LHT_20100622_001 start
+static int msm_lcd_read_proc(char *page, char **start, off_t off, int count, int *eof, void *data)
+{
+	int len = 0;
+    printk("[ZGC]:msm_lcd_read_proc\n");
+	switch(LcdPanleID)
+	{
+		case LCD_PANEL_P726_ILI9325C:
+			strcpy(module_name,"1");
+			break;
+		case LCD_PANEL_P726_HX8347D:
+			strcpy(module_name,"2");
+			break;
+		case LCD_PANEL_P726_S6D04M0X01:
+			strcpy(module_name,"3");
+			break;
+		case LCD_PANEL_P722_HX8352A:
+			strcpy(module_name,"10");
+			break;
+		case LCD_PANEL_P727_HX8352A:
+			strcpy(module_name,"20");
+			break;
+		case LCD_PANEL_R750_ILI9481_1:
+			strcpy(module_name,"30");
+			break;
+		case LCD_PANEL_R750_ILI9481_2:
+			strcpy(module_name,"31");
+			break;
+		case LCD_PANEL_R750_ILI9481_3:
+			strcpy(module_name,"32");
+			break;
+		case LCD_PANEL_P729_TL2796:
+			strcpy(module_name,"40");
+			break;
+		case LCD_PANEL_P729_TFT_LEAD:
+			strcpy(module_name,"42");
+			break;
+		case LCD_PANEL_P729_TFT_TRULY:
+			strcpy(module_name,"41");
+			break;
+		case LCD_PANEL_V9_NT39416I:
+			strcpy(module_name,"50");
+			break;	
+		case LCD_PANEL_4P3_NT35510:
+			strcpy(module_name,"60");
+			break;
+		case LCD_PANEL_4P3_HX8369A:
+			strcpy(module_name,"61");
+			break;
+		case LCD_PANEL_3P8_NT35510_1:
+			strcpy(module_name,"70");
+			break;
+		case LCD_PANEL_3P8_NT35510_2:
+			strcpy(module_name,"71");
+			break;
+		case LCD_PANEL_3P8_HX8363A:
+			strcpy(module_name,"72");
+			break;
+		case LCD_PANEL_3P5_ILI9481_1:
+			strcpy(module_name,"80");
+			break;
+		case LCD_PANEL_3P5_ILI9481_2:
+			strcpy(module_name,"81");
+			break;
+		case LCD_PANEL_3P5_R61581:
+			strcpy(module_name,"82");
+			break;
+		case LCD_PANEL_2P6_HX8368A_1:
+			strcpy(module_name,"90");
+			break;
+		case LCD_PANEL_2P6_HX8368A_2:
+			strcpy(module_name,"91");
+			break;
+		default:
+			strcpy(module_name,"0");
+			break;
+	}
+	len = sprintf(page, "%s\n",module_name);
+	return len;
+}
+
+static int msm_lcd_write_proc(struct file *file, const char __user *buffer, unsigned long count, void *data)
+{
+	char tmp[16] = {0};
+	int len = 0;
+	len = count;
+
+	if (count > sizeof(tmp)) {
+		len = sizeof(tmp) - 1;
+	}
+	if (copy_from_user(tmp, buffer, len)) {
+		return -EFAULT;
+	}
+	if (strstr(tmp, "on")) {
+		lcd_debug = 1;
+	} else if (strstr(tmp, "off")) {
+		lcd_debug = 0;
+	}
+	return count;
+}
+
+void  init_lcd_proc(void)
+{
+	printk("[ZGC]:init_lcd_proc\n");
+	d_entry = create_proc_entry("msm_lcd", 0, NULL);
+	if (d_entry) {
+		d_entry->read_proc = msm_lcd_read_proc;
+		d_entry->write_proc = msm_lcd_write_proc;
+		d_entry->data = NULL;
+	}
+}
+
+void deinit_lcd_proc(void)
+{
+	printk("[ZGC]:deinit_lcd_proc\n");
+	if (NULL != d_entry) {
+		remove_proc_entry("msm_lcd", NULL);
+		d_entry = NULL;
+	}
+}
+//ZTE_LCD_LHT_20100622_001 end
 
 void msm_fb_add_device(struct platform_device *pdev)
 {

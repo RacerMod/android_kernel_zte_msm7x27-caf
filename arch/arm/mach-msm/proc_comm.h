@@ -168,6 +168,33 @@ enum {
 	PCOM_CMD_FAIL_PROC_COMM_NOT_INIT,
 };
 
+#define _GPIO_ENABLE	0
+#define _GPIO_DISABLE	1
+
+#define _GPIO_INPUT	0
+#define _GPIO_OUTPUT	1
+
+#define _GPIO_NO_PULL	0
+#define _GPIO_PULL_DOWN	1
+#define _GPIO_KEEPER	2
+#define _GPIO_PULL_UP	3
+
+#define _GPIO_2MA	0
+#define _GPIO_4MA	1
+#define _GPIO_6MA	2
+#define _GPIO_8MA	3
+#define _GPIO_10MA	4
+#define _GPIO_12MA	5
+#define _GPIO_14MA	6
+#define _GPIO_16MA	7
+
+#define _PCOM_GPIO_CFG(gpio, func, dir, pull, drvstr) \
+		((((gpio) & 0x3FF) << 4)	| \
+		((func) & 0xf)			| \
+		(((dir) & 0x1) << 14)		| \
+		(((pull) & 0x3) << 15)		| \
+		(((drvstr) & 0xF) << 17))
+		
 void msm_proc_comm_reset_modem_now(void);
 int msm_proc_comm(unsigned cmd, unsigned *data1, unsigned *data2);
 

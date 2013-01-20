@@ -463,7 +463,19 @@ config MMC_MSM_PROG_DONE_SCAN
 	help
 	  Enable prog_done scan after cmd53-dummycmd52 for SDIO
 
+config ATH_WIFI
+	bool "SDIO suspend and resume method for atheros wifi"
+	depends on MMC_MSM
+	default n
+	help
+	  Enable Atheros SDIO wifi suspend resume function
 
+config BCM_WIFI
+	bool "SDIO suspend and resume method for broadcom wifi"
+	depends on MMC_MSM
+	default n
+	help
+	  Enable Broadcom SDIO wifi suspend resume function
 
 config MMC_TMIO
 	tristate "Toshiba Mobile IO Controller (TMIO) MMC/SD function support"

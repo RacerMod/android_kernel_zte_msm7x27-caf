@@ -38,11 +38,28 @@
 static struct wake_lock adsp_wake_lock;
 static inline void prevent_suspend(void)
 {
-	wake_lock(&adsp_wake_lock);
+	if (!wake_lock_active(&adsp_wake_lock))
+	{
+		wake_lock(&adsp_wake_lock);
+	}
 }
 static inline void allow_suspend(void)
 {
-	wake_unlock(&adsp_wake_lock);
+	if (wake_lock_active(&adsp_wake_lock))
+	{
+		wake_unlock(&adsp_wake_lock);
+	}
+}
+
+void resume_prevent_suspend(void)
+{
+	prevent_suspend();
+	MM_INFO("chenjun:patch:resume_prevent_suspend\n");
+}
+void suspend_allow_suspend(void)
+{
+	allow_suspend();
+	MM_INFO("chenjun:patch:suspend_allow_suspend\n");
 }
 
 #include <linux/io.h>
@@ -427,7 +444,8 @@ int __msm_adsp_write(struct msm_adsp_module *module, unsigned dsp_queue_addr,
 	while (((ctrl_word = readl(info->write_ctrl)) &
 		ADSP_RTOS_WRITE_CTRL_WORD_READY_M) !=
 		ADSP_RTOS_WRITE_CTRL_WORD_READY_V) {
-		if (cnt > 50) {
+		//if (cnt > 50) {
+		if (cnt > (50 * 4)) {
 			MM_ERR("timeout waiting for DSP write ready\n");
 			ret_status = -EIO;
 			goto fail;
@@ -464,7 +482,7 @@ int __msm_adsp_write(struct msm_adsp_module *module, unsigned dsp_queue_addr,
 	while ((readl(info->write_ctrl) &
 		ADSP_RTOS_WRITE_CTRL_WORD_MUTEX_M) ==
 		ADSP_RTOS_WRITE_CTRL_WORD_MUTEX_NAVAIL_V) {
-		if (cnt > 2500) {
+		if (cnt > (2500 * 4)) {
 			MM_ERR("timeout waiting for adsp ack\n");
 			ret_status = -EIO;
 			goto fail;
@@ -1006,7 +1024,7 @@ int msm_adsp_enable(struct msm_adsp_module *module)
 		mutex_unlock(&module->lock);
 		rc = wait_event_timeout(module->state_wait,
 					module->state != ADSP_STATE_ENABLING,
-					1 * HZ);
+					5 * HZ);
 		mutex_lock(&module->lock);
 		if (module->state == ADSP_STATE_ENABLED) {
 			rc = 0;

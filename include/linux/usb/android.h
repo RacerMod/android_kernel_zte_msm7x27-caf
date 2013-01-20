@@ -23,6 +23,7 @@
 #define ANDROID_ACM_NMEA	0x0005
 #define ANDROID_GENERIC_MODEM	0x0006
 #define ANDROID_GENERIC_NMEA	0x0007
+#define ANDROID_GENERIC_AT	0x000B
 #define ANDROID_CDC_ECM		0x0008
 #define ANDROID_RMNET		0x0009
 #define ANDROID_RNDIS		0x000A
@@ -51,6 +52,7 @@ struct usb_composition {
 	unsigned long adb_functions;
 };
 
+#if 0
 /* Platform data for "usb_mass_storage" driver. */
 struct usb_mass_storage_platform_data {
 	/* Contains values for the SC_INQUIRY SCSI command. */
@@ -61,4 +63,5 @@ struct usb_mass_storage_platform_data {
 	/* number of LUNS */
 	int nluns;
 };
+#endif
 #endif	/* __LINUX_USB_ANDROID_H */

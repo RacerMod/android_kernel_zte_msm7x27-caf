@@ -27,6 +27,15 @@
 #include <mach/board.h>
 #include <mach/rpc_server_handset.h>
 
+/* ZTE_HS_YXS_20110119 begin */
+#if defined(CONFIG_ZTE_PLATFORM)
+#include <linux/wakelock.h>
+static struct wake_lock hs_wake_lock;
+#define HS_WAKELOCK_TIME (HZ * 10)
+bool fm_is_on(void); /* @fm_si4708.c */
+#endif
+/* ZTE_HS_YXS_20110119 end */
+
 #define DRIVER_NAME	"msm-handset"
 
 #define HS_SERVER_PROG 0x30000062
@@ -51,6 +60,8 @@
 #define HS_HEADSET_SWITCH_2_K	0xF0
 #define HS_HEADSET_SWITCH_3_K	0xF1
 #define HS_REL_K		0xFF	/* key release */
+#define HS_EXT_PWR_ON_K         0x78    /* External power was turned on        0x78    */
+#define HS_EXT_PWR_OFF_K        0x79    /* External power was turned off       0x79    */
 
 #define KEY(hs_key, input_key) ((hs_key << 24) | input_key)
 
@@ -180,11 +191,13 @@ struct hs_cmd_data_type {
 
 static const uint32_t hs_key_map[] = {
 	KEY(HS_PWR_K, KEY_POWER),
-	KEY(HS_END_K, KEY_END),
+	KEY(HS_END_K, KEY_SLEEP),
 	KEY(HS_STEREO_HEADSET_K, SW_HEADPHONE_INSERT),
 	KEY(HS_HEADSET_SWITCH_K, KEY_MEDIA),
 	KEY(HS_HEADSET_SWITCH_2_K, KEY_VOLUMEUP),
 	KEY(HS_HEADSET_SWITCH_3_K, KEY_VOLUMEDOWN),
+	KEY(HS_EXT_PWR_ON_K,KEY_WAKEUP),
+    KEY(HS_EXT_PWR_OFF_K,KEY_WAKEUP),
 	0
 };
 
@@ -238,7 +251,30 @@ report_headset_switch(struct input_dev *dev, int key, int value)
 
 	input_report_switch(dev, key, value);
 	switch_set_state(&hs->sdev, value);
+
+/* ZTE_HS_YXS_20110119 begin */
+#if defined(CONFIG_ZTE_PLATFORM)
+	/* set wakelock when removing headset & fm is on */
+	if (!value && fm_is_on())
+	{
+		pr_err("[YXS]set hs_wake_lock, %d timeout\n", HS_WAKELOCK_TIME);
+		wake_lock_timeout(&hs_wake_lock, HS_WAKELOCK_TIME);
+	}
+#endif
 }
+
+#if defined(CONFIG_ZTE_PLATFORM)
+void report_fm_closed(void)
+{
+	if (wake_lock_active(&hs_wake_lock))
+	{
+		pr_err("[YXS]unlock hs_wake_lock\n");
+		wake_unlock(&hs_wake_lock);
+	}
+}
+EXPORT_SYMBOL(report_fm_closed);
+#endif /* CONFIG_ZTE_PLATFORM */
+/* ZTE_HS_YXS_20110119 end */
 
 /*
  * tuple format: (key_code, key_param)
@@ -267,10 +303,14 @@ static void report_hs_key(uint32_t key_code, uint32_t key_parm)
 
 	switch (key) {
 	case KEY_POWER:
-	case KEY_END:
+	case KEY_SLEEP:
 	case KEY_MEDIA:
 	case KEY_VOLUMEUP:
 	case KEY_VOLUMEDOWN:
+		input_report_key(hs->ipdev, key, (key_code != HS_REL_K));
+		break;
+		
+	case KEY_WAKEUP:
 		input_report_key(hs->ipdev, key, (key_code != HS_REL_K));
 		break;
 	case SW_HEADPHONE_INSERT:
@@ -604,12 +644,13 @@ static int __devinit hs_probe(struct platform_device *pdev)
 	ipdev->id.product	= 1;
 	ipdev->id.version	= 1;
 
+	input_set_capability(ipdev, EV_KEY, KEY_WAKEUP);
 	input_set_capability(ipdev, EV_KEY, KEY_MEDIA);
 	input_set_capability(ipdev, EV_KEY, KEY_VOLUMEUP);
 	input_set_capability(ipdev, EV_KEY, KEY_VOLUMEDOWN);
 	input_set_capability(ipdev, EV_SW, SW_HEADPHONE_INSERT);
 	input_set_capability(ipdev, EV_KEY, KEY_POWER);
-	input_set_capability(ipdev, EV_KEY, KEY_END);
+	input_set_capability(ipdev, EV_KEY, KEY_SLEEP);
 
 	rc = input_register_device(ipdev);
 	if (rc) {
@@ -625,6 +666,9 @@ static int __devinit hs_probe(struct platform_device *pdev)
 		dev_err(&ipdev->dev, "rpc init failure\n");
 		goto err_hs_rpc_init;
 	}
+#if defined(CONFIG_ZTE_PLATFORM)
+	wake_lock_init(&hs_wake_lock, WAKE_LOCK_SUSPEND, "hs");
+#endif
 
 	return 0;
 
@@ -668,6 +712,12 @@ late_initcall(hs_init);
 
 static void __exit hs_exit(void)
 {
+/* ZTE_HS_YXS_20110119 begin */
+#if defined(CONFIG_ZTE_PLATFORM)
+	wake_lock_destroy(&hs_wake_lock);
+#endif
+/* ZTE_HS_YXS_20110119 end */
+
 	platform_driver_unregister(&hs_driver);
 }
 module_exit(hs_exit);

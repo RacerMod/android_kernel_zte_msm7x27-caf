@@ -27,6 +27,7 @@
 
 #include "audmgr.h"
 #include <mach/debug_mm.h>
+#include <linux/delay.h> //ZTE
 
 #define STATE_CLOSED    0
 #define STATE_DISABLED  1
@@ -270,6 +271,7 @@ int audmgr_open(struct audmgr *am)
 			amg->ept = NULL;
 			goto done;
 		}
+	msleep(23); //ZTE
 	}
 
 	/* Initialize session parameters */

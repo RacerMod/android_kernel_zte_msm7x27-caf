@@ -1961,6 +1961,7 @@ static void audmp3_suspend(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audmp3_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
+	suspend_allow_suspend();
 }
 
 static void audmp3_resume(struct early_suspend *h)
@@ -1971,6 +1972,7 @@ static void audmp3_resume(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audmp3_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
+	resume_prevent_suspend();
 }
 #endif
 

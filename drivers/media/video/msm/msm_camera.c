@@ -151,6 +151,7 @@ static void msm_enqueue(struct msm_device_queue *queue,
 		list_del_init(&qcmd->member);			\
 		free_qcmd(qcmd);				\
 	};							\
+	__q->len = 0;						\
 	spin_unlock_irqrestore(&__q->lock, flags);		\
 } while (0)
 
@@ -230,7 +231,11 @@ static int msm_pmem_table_add(struct hlist_head *ptype,
 		__func__,
 		info->type, paddr, (unsigned long)info->vaddr);
 
+#if 0
 	region = kmalloc(sizeof(struct msm_pmem_region), GFP_KERNEL);
+#else
+	region = kzalloc(sizeof(struct msm_pmem_region), GFP_KERNEL);
+#endif
 	if (!region)
 		return -ENOMEM;
 
@@ -604,11 +609,20 @@ static struct msm_queue_cmd *__msm_control_nb(struct msm_sync *sync,
 	struct msm_ctrl_cmd *udata;
 	struct msm_ctrl_cmd *udata_to_copy = qcmd_to_copy->command;
 
+#if 0
 	struct msm_queue_cmd *qcmd =
 			kmalloc(sizeof(*qcmd_to_copy) +
 				sizeof(*udata_to_copy) +
 				udata_to_copy->length,
 				GFP_KERNEL);
+#else
+	struct msm_queue_cmd *qcmd =
+			kzalloc(sizeof(*qcmd_to_copy) +
+				sizeof(*udata_to_copy) +
+				udata_to_copy->length,
+				GFP_KERNEL);
+#endif
+
 	if (!qcmd) {
 		pr_err("%s: out of memory\n", __func__);
 		return ERR_PTR(-ENOMEM);
@@ -865,6 +879,11 @@ static int msm_get_stats(struct msm_sync *sync, void __user *arg)
 
 	qcmd = msm_dequeue(&sync->event_q, list_config);
 	BUG_ON(!qcmd);
+	if (!qcmd) {
+		rc = -EFAULT;
+		pr_err("%s: qcmd is NULL, rc %d\n", __func__, rc);
+		return rc;
+	}
 
 	CDBG("%s: received from DSP %d\n", __func__, qcmd->type);
 
@@ -1563,6 +1582,11 @@ static int __msm_get_pic(struct msm_sync *sync, struct msm_ctrl_cmd *ctrl)
 
 	qcmd = msm_dequeue(&sync->pict_q, list_pict);
 	BUG_ON(!qcmd);
+    if (!qcmd) {
+        rc = -EFAULT;
+        pr_err("%s: qcmd is NULL, rc %d\n", __func__, rc);
+	    return rc;
+    }
 
 	if (qcmd->command != NULL) {
 		struct msm_ctrl_cmd *q =
@@ -1632,7 +1656,11 @@ static int msm_set_crop(struct msm_sync *sync, void __user *arg)
 	}
 
 	if (!sync->croplen) {
+#if 0
 		sync->cropinfo = kmalloc(crop.len, GFP_KERNEL);
+#else
+		sync->cropinfo = kzalloc(crop.len, GFP_KERNEL);
+#endif
 		if (!sync->cropinfo)
 			return -ENOMEM;
 	} else if (sync->croplen < crop.len)
@@ -1831,6 +1859,21 @@ static long msm_ioctl_config(struct file *filep, unsigned int cmd,
 		break;
 	}
 
+	case MSM_CAM_IOCTL_FLASH_LED_ON_OFF_CFG: {
+        uint32_t flashled_switch;
+        if (copy_from_user(&flashled_switch, argp, sizeof(flashled_switch))) {
+            ERR_COPY_FROM_USER();
+            rc = -EFAULT;
+        } else {
+            if (0 == flashled_switch) {
+                rc = msm_camera_flash_led_disable();
+            }
+            else {
+                rc = msm_camera_flash_led_enable();
+            }
+        }
+        break;	
+    }
 	default:
 		rc = msm_ioctl_common(pmsm, cmd, argp);
 		break;
@@ -1945,6 +1988,7 @@ static int __msm_release(struct msm_sync *sync)
 		}
 		msm_queue_drain(&sync->pict_q, list_pict);
 
+		wake_unlock(&sync->wake_suspend_lock);
 		wake_unlock(&sync->wake_lock);
 		sync->apps_id = NULL;
 		CDBG("%s: completed\n", __func__);
@@ -2044,8 +2088,13 @@ static void *msm_vfe_sync_alloc(int size,
 			void *syncdata __attribute__((unused)),
 			gfp_t gfp)
 {
+#if 0
 	struct msm_queue_cmd *qcmd =
 		kmalloc(sizeof(struct msm_queue_cmd) + size, gfp);
+#else
+	struct msm_queue_cmd *qcmd =
+		kzalloc(sizeof(struct msm_queue_cmd) + size, gfp);
+#endif
 	if (qcmd) {
 		qcmd->on_heap = 1;
 		return qcmd + 1;
@@ -2080,6 +2129,10 @@ static void msm_vfe_sync(struct msm_vfe_resp *vdata,
 		return;
 	}
 
+	if (!sync->opencnt) {
+		pr_err("%s: SPURIOUS INTERRUPT\n", __func__);
+		return;
+	}
 	qcmd = ((struct msm_queue_cmd *)vdata) - 1;
 	qcmd->type = qtype;
 	qcmd->command = vdata;
@@ -2203,6 +2256,7 @@ static int __msm_open(struct msm_sync *sync, const char *const apps_id)
 	sync->apps_id = apps_id;
 
 	if (!sync->opencnt) {
+		wake_lock(&sync->wake_suspend_lock);
 		wake_lock(&sync->wake_lock);
 
 		msm_camvfe_fn_init(&sync->vfefn, sync);
@@ -2219,6 +2273,7 @@ static int __msm_open(struct msm_sync *sync, const char *const apps_id)
 			if (rc < 0) {
 				pr_err("%s: sensor init failed: %d\n",
 					__func__, rc);
+				sync->vfefn.vfe_release(sync->pdev);
 				goto msm_open_done;
 			}
 		} else {
@@ -2281,14 +2336,26 @@ static int msm_open_control(struct inode *inode, struct file *filep)
 {
 	int rc;
 
+#if 0
 	struct msm_control_device *ctrl_pmsm =
 		kmalloc(sizeof(struct msm_control_device), GFP_KERNEL);
+#else
+	struct msm_control_device *ctrl_pmsm =
+		kzalloc(sizeof(struct msm_control_device), GFP_KERNEL);
+#endif
 	if (!ctrl_pmsm)
 		return -ENOMEM;
 
 	rc = msm_open_common(inode, filep, 0);
+#if 0
 	if (rc < 0)
 		return rc;
+#else
+	if (rc < 0) {
+		kfree(ctrl_pmsm);
+		return rc;
+	}
+#endif
 
 	ctrl_pmsm->pmsm = filep->private_data;
 	filep->private_data = ctrl_pmsm;
@@ -2314,7 +2381,11 @@ static int __msm_v4l2_control(struct msm_sync *sync,
 	struct msm_device_queue *v4l2_ctrl_q = &g_v4l2_control_device->ctrl_q;
 
 	/* wake up config thread, 4 is for V4L2 application */
+#if 0
 	qcmd = kmalloc(sizeof(struct msm_queue_cmd), GFP_KERNEL);
+#else
+	qcmd = kzalloc(sizeof(struct msm_queue_cmd), GFP_KERNEL);
+#endif
 	if (!qcmd) {
 		pr_err("%s: cannot allocate buffer\n", __func__);
 		rc = -ENOMEM;
@@ -2451,6 +2522,7 @@ static int msm_sync_init(struct msm_sync *sync,
 	msm_queue_init(&sync->frame_q, "frame");
 	msm_queue_init(&sync->pict_q, "pict");
 
+	wake_lock_init(&sync->wake_suspend_lock, WAKE_LOCK_SUSPEND, "msm_camera_wake");
 	wake_lock_init(&sync->wake_lock, WAKE_LOCK_IDLE, "msm_camera");
 
 	rc = msm_camio_probe_on(pdev);
@@ -2466,6 +2538,7 @@ static int msm_sync_init(struct msm_sync *sync,
 		pr_err("%s: failed to initialize %s\n",
 			__func__,
 			sync->sdata->sensor_name);
+		wake_lock_destroy(&sync->wake_suspend_lock);
 		wake_lock_destroy(&sync->wake_lock);
 		return rc;
 	}
@@ -2478,6 +2551,7 @@ static int msm_sync_init(struct msm_sync *sync,
 
 static int msm_sync_destroy(struct msm_sync *sync)
 {
+	wake_lock_destroy(&sync->wake_suspend_lock);
 	wake_lock_destroy(&sync->wake_lock);
 	return 0;
 }
@@ -2596,3 +2670,77 @@ int msm_camera_drv_start(struct platform_device *dev,
 	return rc;
 }
 EXPORT_SYMBOL(msm_camera_drv_start);
+#if defined(CONFIG_SENSOR_ADAPTER)
+DECLARE_MUTEX(msm_camera_sensor_dev_sem);
+int msm_camera_dev_start(struct platform_device *dev,
+                                 int (*i2c_dev_probe_on)(void),
+                                 void (*i2c_dev_probe_off)(void),
+                                 int (*sensor_dev_probe)(const struct msm_camera_sensor_info *))
+{
+    int rc = 0;
+    struct msm_camera_sensor_info *sensor_info_ptr;
+    static uint32_t sensor_init_status = 0;
+
+    down(&msm_camera_sensor_dev_sem);
+    
+    CDBG("%s: entry, name=%s\n", __func__, dev->name);
+
+    if(0 == sensor_init_status)
+    {
+        rc = i2c_dev_probe_on();
+        if (rc < 0)
+        {
+            CCRT("%s: i2c_dev_probe_on failed!\n", __func__);
+
+            up(&msm_camera_sensor_dev_sem);
+            
+            return -EFAULT;
+        }
+
+        rc = msm_camio_probe_on(dev);
+        if (rc < 0)
+        {
+            CCRT("%s: msm_camio_probe_on failed!\n", __func__);
+            goto dev_start_exit;
+        }
+
+        sensor_info_ptr = dev->dev.platform_data;
+        rc = sensor_dev_probe(sensor_info_ptr);
+        if (rc < 0)
+        {
+            CCRT("%s: sensor_dev_probe failed!\n", __func__);
+
+            /* ignore "rc" */
+            msm_camio_probe_off(dev);
+
+            goto dev_start_exit;
+        }
+        else
+        {
+            sensor_init_status = 1;
+        }
+
+        rc = msm_camio_probe_off(dev);
+        if (rc < 0) 
+        {
+            CCRT("%s: msm_camio_probe_off failed!\n", __func__);
+            goto dev_start_exit;
+        }
+    }
+    else
+    {
+        rc = -EFAULT;
+        CDBG("%s: entry, no need to initialize name=%s \n", __func__,dev->name);
+    }
+
+    up(&msm_camera_sensor_dev_sem);
+
+    return rc;
+
+dev_start_exit:
+    i2c_dev_probe_off();
+    up(&msm_camera_sensor_dev_sem);
+    return rc;
+}
+EXPORT_SYMBOL(msm_camera_dev_start);
+#endif

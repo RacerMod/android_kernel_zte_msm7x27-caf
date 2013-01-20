@@ -1273,6 +1273,7 @@ static void audqcelp_suspend(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audqcelp_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
+	suspend_allow_suspend();
 }
 
 static void audqcelp_resume(struct early_suspend *h)
@@ -1283,6 +1284,7 @@ static void audqcelp_resume(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audqcelp_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
+	resume_prevent_suspend();
 }
 #endif
 

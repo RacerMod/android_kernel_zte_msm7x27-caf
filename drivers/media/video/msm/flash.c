@@ -21,7 +21,98 @@
 #include <linux/pmic8058-pwm.h>
 #include <mach/pmic.h>
 #include <mach/camera.h>
+#include <mach/gpio.h>
 
+#if defined(CONFIG_MSM_CAMERA_FLASH)
+
+#if defined(CONFIG_MACH_JOE)
+#define MSM_CAMERA_FLASH_LED_GPIO   (88)
+#else
+#define MSM_CAMERA_FLASH_LED_GPIO   (255)   // illegal value
+#endif
+static uint32_t flash_led_enable = 0;
+
+static int32_t msm_camera_flash_set_led_gpio(int32_t gpio_val)
+{
+    int32_t rc = -EFAULT;
+
+    CDBG("%s: gpio_val=%d\n", __func__, gpio_val);
+
+    rc = gpio_request(MSM_CAMERA_FLASH_LED_GPIO, "flashled-gpio");
+    if (0 == rc)
+    {
+        rc = gpio_direction_output(MSM_CAMERA_FLASH_LED_GPIO, gpio_val);
+    }
+    gpio_free(MSM_CAMERA_FLASH_LED_GPIO);
+
+    return rc;
+}
+
+int32_t msm_camera_flash_set_led_state(struct msm_camera_sensor_flash_data *fdata,
+                                                 unsigned led_state)
+{
+    int32_t rc = 0;
+
+    CDBG("%s: led_state: %d\n", __func__, led_state);
+	
+    if (fdata->flash_type != MSM_CAMERA_FLASH_LED)
+    {
+		return -ENODEV;
+    }
+	
+    switch(led_state)
+    {
+        case MSM_CAMERA_LED_OFF:
+            flash_led_enable = 0;
+            break;
+
+        case MSM_CAMERA_LED_LOW:
+        case MSM_CAMERA_LED_HIGH:
+            CDBG("%s: set MSM_CAMERA_LED_LOW/MSM_CAMERA_LED_HIGH\n", __func__);
+            flash_led_enable = 1;
+            break;
+
+        default:
+            flash_led_enable = 0;
+            rc = -EFAULT;
+            CDBG("%s: rc=%d\n", __func__, rc);
+            return rc;
+    }
+
+    CDBG("%s: rc=%d\n", __func__, rc);
+
+    return rc;
+}
+
+int32_t msm_camera_flash_led_enable(void)
+{
+    int32_t gpio_val;
+    int32_t rc = 0;
+
+    CDBG("%s: entry: flash_led_enable=%d\n", __func__, flash_led_enable);
+
+    if (flash_led_enable)
+    {
+        gpio_val = 1;
+        rc = msm_camera_flash_set_led_gpio(gpio_val);
+    }
+
+    return rc;
+}
+
+int32_t msm_camera_flash_led_disable(void)
+{
+    int32_t gpio_val;
+    int32_t rc;
+
+    CDBG("%s: entry\n", __func__);
+
+    gpio_val = 0;
+    rc = msm_camera_flash_set_led_gpio(gpio_val);
+
+    return rc;
+}
+#else
 static int msm_camera_flash_pwm(
 	struct msm_camera_sensor_flash_pwm *pwm,
 	unsigned led_state)
@@ -127,3 +218,4 @@ int32_t msm_camera_flash_set_led_state(
 
 	return rc;
 }
+#endif 

@@ -550,7 +550,7 @@ static int msm_pm_poll_state(int nr_grps, struct msm_pm_polled_group *grps)
  *****************************************************************************/
 
 #define SCLK_HZ (32768)
-#define MSM_PM_SLEEP_TICK_LIMIT (0x6DDD000)
+#define MSM_PM_SLEEP_TICK_LIMIT (0x54600000) /*ZTE_HYJ_AUTO_WAKEUP_PROBLEM 2010.01.18  (0x6DDD000)->(0x54600000)*/
 
 #ifdef CONFIG_MSM_SLEEP_TIME_OVERRIDE
 static int msm_pm_sleep_time_override;
@@ -1686,7 +1686,7 @@ static void msm_pm_power_off(void)
 static void msm_pm_restart(char str, const char *cmd)
 {
 	msm_rpcrouter_close();
-	msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
+	msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0); //ruanmeisi factory data reset too slowly
 
 	for (;;)
 		;

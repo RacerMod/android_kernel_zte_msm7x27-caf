@@ -183,7 +183,7 @@ static int suspend_enter(suspend_state_t state)
 
 	return error;
 }
-
+extern void record_sleep_awake_time(bool record_sleep_awake); 
 /**
  *	suspend_devices_and_enter - suspend devices and enter the desired system
  *				    sleep state.
@@ -217,6 +217,7 @@ int suspend_devices_and_enter(suspend_state_t state)
  Resume_devices:
 	suspend_test_start();
 	dpm_resume_end(PMSG_RESUME);
+	record_sleep_awake_time(false); 
 	suspend_test_finish("resume devices");
 	resume_console();
  Close:

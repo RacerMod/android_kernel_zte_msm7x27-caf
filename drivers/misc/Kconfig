@@ -17,6 +17,10 @@ config ANDROID_PMEM
 	bool "Android pmem allocator"
 	default y
 
+config FM_SI4708
+	bool "Android FM semiconductor si470x from silicon libraries"
+	default y
+
 config ANDROID_PMEM_DEBUG
 	bool "Android pmem debug"
 	depends on ANDROID_PMEM
@@ -364,5 +368,8 @@ source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
 source "drivers/misc/vidc/Kconfig"
+#ZTE_MODEMCTL_WXW, 20100414, begin, add the modemctl driver module for R750 item
+source "drivers/misc/modemctl/Kconfig"
+#ZTE_MODEMCTL_WXW, 20100414, end, add the modemctl driver module for R750 item
 
 endif # MISC_DEVICES

@@ -43,6 +43,9 @@
 static void otg_reset(struct otg_transceiver *xceiv);
 static void msm_otg_set_vbus_state(int online);
 
+static void schedule_otg_work(struct msm_otg *dev);
+static void init_otg_work(void);
+
 struct msm_otg *the_msm_otg;
 
 static unsigned ulpi_read(struct msm_otg *dev, unsigned reg)
@@ -441,7 +444,7 @@ static irqreturn_t msm_otg_irq(int irq, void *data)
 	u32 otgsc = 0;
 
 	if (atomic_read(&dev->in_lpm)) {
-		msm_otg_resume(dev);
+		schedule_otg_work(dev);
 		return IRQ_HANDLED;
 	}
 
@@ -984,6 +987,8 @@ static struct platform_driver msm_otg_driver = {
 
 static int __init msm_otg_init(void)
 {
+	init_otg_work();
+
 	return platform_driver_probe(&msm_otg_driver, msm_otg_probe);
 }
 
@@ -998,3 +1003,35 @@ module_exit(msm_otg_exit);
 MODULE_LICENSE("GPL v2");
 MODULE_DESCRIPTION("MSM usb transceiver driver");
 MODULE_VERSION("1.00");
+
+struct otg_resume_work {
+	struct msm_otg *dev ;
+	struct work_struct work;
+};
+
+static struct otg_resume_work otg_work;
+
+static void otg_resume_worker(struct work_struct *work)
+{
+	struct otg_resume_work *rwork = container_of(work, struct otg_resume_work, work);
+
+	if (NULL == rwork || NULL == rwork->dev) {
+		printk(KERN_ERR"otg:err %s %d: otg_resume_worker fail\n", __FUNCTION__, __LINE__);
+		return ;
+	}
+	msm_otg_set_suspend(&(rwork->dev->otg), 0);
+	return ;
+}
+
+static void init_otg_work(void)
+{
+	memset(&otg_work, 0, sizeof(otg_work));
+
+	INIT_WORK(&(otg_work.work), otg_resume_worker);
+}
+
+static void schedule_otg_work(struct msm_otg *dev)
+{
+	otg_work.dev = dev;
+	schedule_work(&(otg_work.work));
+}

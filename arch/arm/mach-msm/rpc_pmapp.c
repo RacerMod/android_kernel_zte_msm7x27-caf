@@ -233,9 +233,11 @@ static int pm_app_usb_cb_func(struct msm_rpc_client *client,
 int msm_pm_app_rpc_init(void)
 {
 
+/* cxh merge changes from 4735 - we used ffa flow;so can omit these
 	if (!machine_is_qsd8x50_ffa() && !machine_is_qsd8x50a_ffa()
 			&& !machine_is_msm7x27_ffa())
 		return -ENOTSUPP;
+*/
 
 	boost_vreg = vreg_get(NULL, "boost");
 	if (IS_ERR(boost_vreg)) {

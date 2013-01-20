@@ -873,7 +873,29 @@ struct vfe31_output_ch {
 #define VFE31_IMASK_ERROR_ONLY_0  0x0
 /* when normal case, don't want to block error status. */
 /* bit 0-21 are error irq bits */
-#define VFE31_IMASK_ERROR_ONLY_1  0x003fffff
+#define VFE31_IMASK_ERROR_ONLY_1               0x003FFFFF
+#define VFE31_IMASK_CAMIF_ERROR               (0x00000001<<0)
+#define VFE31_IMASK_STATS_CS_OVWR             (0x00000001<<1)
+#define VFE31_IMASK_STATS_IHIST_OVWR          (0x00000001<<2)
+#define VFE31_IMASK_REALIGN_BUF_Y_OVFL        (0x00000001<<3)
+#define VFE31_IMASK_REALIGN_BUF_CB_OVFL       (0x00000001<<4)
+#define VFE31_IMASK_REALIGN_BUF_CR_OVFL       (0x00000001<<5)
+#define VFE31_IMASK_VIOLATION                 (0x00000001<<6)
+#define VFE31_IMASK_IMG_MAST_0_BUS_OVFL       (0x00000001<<7)
+#define VFE31_IMASK_IMG_MAST_1_BUS_OVFL       (0x00000001<<8)
+#define VFE31_IMASK_IMG_MAST_2_BUS_OVFL       (0x00000001<<9)
+#define VFE31_IMASK_IMG_MAST_3_BUS_OVFL       (0x00000001<<10)
+#define VFE31_IMASK_IMG_MAST_4_BUS_OVFL       (0x00000001<<11)
+#define VFE31_IMASK_IMG_MAST_5_BUS_OVFL       (0x00000001<<12)
+#define VFE31_IMASK_IMG_MAST_6_BUS_OVFL       (0x00000001<<13)
+#define VFE31_IMASK_STATS_AE_BUS_OVFL         (0x00000001<<14)
+#define VFE31_IMASK_STATS_AF_BUS_OVFL         (0x00000001<<15)
+#define VFE31_IMASK_STATS_AWB_BUS_OVFL        (0x00000001<<16)
+#define VFE31_IMASK_STATS_RS_BUS_OVFL         (0x00000001<<17)
+#define VFE31_IMASK_STATS_CS_BUS_OVFL         (0x00000001<<18)
+#define VFE31_IMASK_STATS_IHIST_BUS_OVFL      (0x00000001<<19)
+#define VFE31_IMASK_STATS_SKIN_BUS_OVFL       (0x00000001<<20)
+#define VFE31_IMASK_AXI_ERROR                 (0x00000001<<21)
 
 struct vfe31_output_path {
 	uint16_t output_mode;     /* bitmask  */
