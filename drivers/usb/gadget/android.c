@@ -75,7 +75,208 @@ module_param_call(product_id, android_set_pid, android_get_pid,
 					&product_id, 0664);
 MODULE_PARM_DESC(product_id, "USB device product id");
 
-/* serial number */
+struct usb_composition *android_validate_product_id(unsigned short pid);
+
+
+#define PRODUCT_ID_ALL_INTERFACE          0x1350
+#define PRODUCT_ID_MS_ADB                      0x1351
+#define PRODUCT_ID_ADB                             0x1352
+#define PRODUCT_ID_MS                               0x1353
+#define PRODUCT_ID_DIAG                           0x0112
+#define PRODUCT_ID_DIAG_NMEA_MODEM   0x0111
+#define PRODUCT_ID_MODEM_MS_ADB         0x1354
+#define PRODUCT_ID_MODEM_MS                 0x1355
+#define PRODUCT_ID_MS_CDROM                 0x0083
+#define PRODUCT_ID_RNDIS_MS                 0x1364
+#define PRODUCT_ID_RNDIS_MS_ADB             0x1364
+#define PRODUCT_ID_RNDIS             0x1365
+#define PRODUCT_ID_RNDIS_ADB             0x1373
+
+#define PRODUCT_ID_DIAG_MODEM_NEMA_MS_AT             0x1367
+#define PRODUCT_ID_DIAG_MODEM_NEMA_MS_ADB_AT             0x1366
+
+int support_assoc_desc(void)
+{
+	return product_id == PRODUCT_ID_RNDIS ? 0 : 1;
+}
+
+struct usb_ex_work
+{
+	struct workqueue_struct *workqueue;
+	int    enable_switch;
+	int    enable_linux_switch;
+	int switch_pid;
+	int has_switch;
+	int cur_pid;
+	int linux_pid;
+	struct delayed_work switch_work;
+	struct delayed_work linux_switch_work;
+	struct delayed_work plug_work;
+	spinlock_t lock;
+};
+
+struct usb_ex_work global_usbwork = {0};
+static int create_usb_work_queue(void);
+static int destroy_usb_work_queue(void);
+static void usb_plug_work(struct work_struct *w);
+static void usb_switch_work(struct work_struct *w);
+static void usb_switch_os_work(struct work_struct *w);
+static void clear_switch_flag(void);
+static int usb_cdrom_is_enable(void);
+static int enble_cdrom_after_switch(void);
+
+
+
+enum usb_opt_nv_item
+{
+	NV_BACK_LIGHT_I=77,
+	NV_FTM_MODE_I = 453
+};
+enum usb_opt_nv_type
+{
+	NV_READ=0,
+	NV_WRITE
+};
+
+int
+msm_hsusb_get_set_usb_conf_nv_value(uint32_t nv_item,uint32_t value,uint32_t is_write);
+int get_ftm_from_tag(void);
+static unsigned short g_enable_cdrom = 0;
+static int zte_usb_pid[]={
+	PRODUCT_ID_ALL_INTERFACE,
+        PRODUCT_ID_MS_ADB,
+        PRODUCT_ID_ADB,
+        PRODUCT_ID_MS,
+        PRODUCT_ID_DIAG,
+        PRODUCT_ID_DIAG_NMEA_MODEM,
+        PRODUCT_ID_MODEM_MS_ADB,
+        PRODUCT_ID_MODEM_MS,
+        /*ZTE_USB_WZY_101021 start*/
+        PRODUCT_ID_DIAG_MODEM_NEMA_MS_AT, 
+	PRODUCT_ID_DIAG_MODEM_NEMA_MS_ADB_AT, 
+				/*ZTE_USB_WZY_101021 end*/
+        PRODUCT_ID_MS_CDROM,
+};
+#define PRODUCT_ID_COUNT    (sizeof(zte_usb_pid)/sizeof(zte_usb_pid[0]))
+
+
+#define NV_WRITE_SUCCESS 10
+
+
+
+static int ftm_mode = 0;
+static int is_ftm_mode(void)
+{
+	return !!ftm_mode;
+}
+static void set_ftm_mode(int i)
+{
+	ftm_mode = i;
+	return ;
+}
+
+static int get_nv(void) 
+{
+	return msm_hsusb_get_set_usb_conf_nv_value(NV_BACK_LIGHT_I,0,NV_READ);
+}
+static int set_nv(int nv)
+{
+	int r = msm_hsusb_get_set_usb_conf_nv_value(NV_BACK_LIGHT_I,nv,NV_WRITE);
+	return (r == NV_WRITE_SUCCESS)? 0:-1;
+}
+
+
+static int config_ftm_from_nv(void)
+{
+	int i = 0;
+	if (is_ftm_mode()) {
+		return 0;
+	}
+	i = get_nv();
+	if (i < 0 || i >= PRODUCT_ID_COUNT) {
+		return -1;
+	}
+	set_ftm_mode((PRODUCT_ID_DIAG == zte_usb_pid[i])? 1:0);
+	printk("usb: %s, %d: ftm_mode %s\n",
+	       __FUNCTION__, __LINE__,
+	       is_ftm_mode()?"enable":"disable");
+	if (is_ftm_mode()) {
+		product_id = PRODUCT_ID_DIAG;
+	}
+	return 0;
+}
+
+static int config_ftm_from_tag(void)
+{
+	if (is_ftm_mode()) {
+		return 0;
+	}
+	
+	set_ftm_mode(get_ftm_from_tag());
+
+	printk("usb: %s, %d: ftm_mode %s\n",
+	       __FUNCTION__, __LINE__,
+	       is_ftm_mode()?"enable":"disable");
+	if (is_ftm_mode()) {
+		product_id = PRODUCT_ID_DIAG;
+	}
+	return 0;
+}
+
+static ssize_t msm_hsusb_set_pidnv(struct device *dev,
+                                   struct device_attribute *attr,
+                                   const char *buf, size_t size)
+{
+        int value;
+        sscanf(buf, "%d", &value);
+        set_nv(value);
+        return size;
+}
+
+static ssize_t msm_hsusb_show_pidnv(struct device *dev,
+				    struct device_attribute *attr,
+				    char *buf)
+{
+        int i = 0;
+        i = scnprintf(buf, PAGE_SIZE, "nv %d\n", get_nv());
+
+        return i;
+}
+
+
+static ssize_t msm_hsusb_show_ftm(struct device *dev,
+				    struct device_attribute *attr,
+				    char *buf)
+{
+        int i = 0;
+        i = scnprintf(buf, PAGE_SIZE, "%s\n", is_ftm_mode()?"enable":"disable");
+        return i;
+}
+
+static ssize_t msm_hsusb_show_enable_cdrom(struct device *dev,
+					 struct device_attribute *attr,
+					 char *buf)
+{
+	int i = 0;	
+	i = scnprintf(buf, PAGE_SIZE, "%d\n", g_enable_cdrom);	
+	return i;
+}
+
+static ssize_t msm_hsusb_store_enable_cdrom(struct device *dev,
+					  struct device_attribute *attr,
+					  const char *buf, size_t size)
+{
+       unsigned long cdrom_enable = 0;
+      	if (!strict_strtoul(buf, 16, &cdrom_enable)) {
+		g_enable_cdrom = (cdrom_enable == 0x5656)? 1 : 0;
+		pr_info("%s: Requested enable_cdrom = %d 0x%lx\n",
+			__func__, g_enable_cdrom, cdrom_enable);	
+	} else {
+		pr_info("%s: strict_strtoul conversion failed, %s\n", __func__, buf);
+	}
+	return size;
+}
+
 #define MAX_SERIAL_LEN 256
 static char serial_number[MAX_SERIAL_LEN] = "1234567890ABCDEF";
 static struct kparam_string kps = {
@@ -115,6 +316,10 @@ static struct android_dev *_android_dev;
 #define STRING_MANUFACTURER_IDX		0
 #define STRING_PRODUCT_IDX		1
 #define STRING_SERIAL_IDX		2
+
+char g_manufacturer_name[64] = {0};
+char g_product_name[64] = {0};
+char g_mass_vendor_name[64] = {"ZTE"};
 
 /* String Table */
 static struct usb_string strings_dev[] = {
@@ -170,9 +375,200 @@ android_func_attr(acm_nmea, ANDROID_ACM_NMEA);
 android_func_attr(diag, ANDROID_DIAG);
 android_func_attr(modem, ANDROID_GENERIC_MODEM);
 android_func_attr(nmea, ANDROID_GENERIC_NMEA);
+android_func_attr(at, ANDROID_GENERIC_AT);/*ZTE_USB_WZY_101021*/
 android_func_attr(cdc_ecm, ANDROID_CDC_ECM);
 android_func_attr(rmnet, ANDROID_RMNET);
 android_func_attr(rndis, ANDROID_RNDIS);
+
+static ssize_t msm_hsusb_show_exwork(struct device *dev,
+					 struct device_attribute *attr,
+					 char *buf)
+{
+	int i = 0;
+	struct usb_ex_work *p = &global_usbwork;
+	i = scnprintf(buf, PAGE_SIZE,
+				"auto switch: %s\nlinux switch: %s\nswitch_pid: 0x%x\ncur_pid: 0x%x\nlinux_pid: 0x%x\n",
+		      p->enable_switch?"enable":"disable",
+		      p->enable_linux_switch?"enable":"disable",
+		      p->switch_pid,
+		      p->cur_pid,
+		      p->linux_pid);
+	
+	return i;
+}
+static ssize_t msm_hsusb_store_enable_switch(struct device *dev,
+					  struct device_attribute *attr,
+					  const char *buf, size_t size)
+{
+     unsigned long enable;
+      	if (!strict_strtoul(buf, 16, &enable)) {
+		global_usbwork.enable_switch = enable;
+	} 
+	return size;
+}
+
+
+static ssize_t msm_hsusb_store_enable_linux_switch(struct device *dev,
+					  struct device_attribute *attr,
+					  const char *buf, size_t size)
+{
+     unsigned long enable;
+      	if (!strict_strtoul(buf, 16, &enable)) {
+		global_usbwork.enable_linux_switch = enable;
+	} 
+	return size;
+}
+
+static ssize_t msm_hsusb_store_cur_pid(struct device *dev,
+					   struct device_attribute *attr,
+					   const char *buf, size_t size)
+{     
+    
+       unsigned long value;
+	if (!strict_strtoul(buf, 16, &value)) {
+      		printk("usb: cur_pid value=0x%x\n",(unsigned int)value);
+		if(android_validate_product_id((unsigned short)value))
+			global_usbwork.cur_pid=(unsigned int) value;
+	}
+	return size;
+}
+
+
+static ssize_t msm_hsusb_store_switch_pid(struct device *dev,
+					   struct device_attribute *attr,
+					   const char *buf, size_t size)
+{     
+     
+       unsigned long value;
+	if (!strict_strtoul(buf, 16, &value)) {
+      		printk("usb: switch_pid value=0x%x\n",(unsigned int)value);
+		if(android_validate_product_id((u16)value))
+			global_usbwork.switch_pid= (unsigned int)value;
+	}
+	
+	return size;
+}
+
+static ssize_t msm_hsusb_store_linux_pid(struct device *dev,
+					   struct device_attribute *attr,
+					   const char *buf, size_t size)
+{     
+   
+       unsigned long value;
+	if (!strict_strtoul(buf, 16, &value)) {
+      		printk("usb: linux_pid value=0x%x\n",(unsigned int)value);
+		if(android_validate_product_id((u16)value))
+			global_usbwork.linux_pid= (unsigned int)value;
+	}
+
+	return size;
+}
+
+
+
+static ssize_t android_show_product_name(struct device *dev,
+			     struct device_attribute *attr,
+			     char *buf)
+{
+	int len = 0;
+	len = scnprintf(buf, PAGE_SIZE,
+		"hsusb product_name is %s \n",
+			strings_dev[STRING_PRODUCT_IDX].s);
+	return len;
+}
+	
+
+static ssize_t android_store_product_name(struct device *dev, 
+						struct device_attribute *attr,
+						const char* buf, size_t size)
+{
+
+	strncpy(g_product_name, buf, sizeof(g_product_name));
+	g_product_name[sizeof(g_product_name) - 1] = 0;
+	strings_dev[STRING_PRODUCT_IDX].s = g_product_name;
+	return size;
+}
+
+static ssize_t android_show_manufacturer_name(struct device *dev,
+			     struct device_attribute *attr,
+					      char *buf)
+{
+	int len = 0;
+	
+	len = scnprintf(buf, PAGE_SIZE,
+			"hsusb manufacturer_name is %s\n",
+			strings_dev[STRING_MANUFACTURER_IDX].s);
+	return len;
+}
+
+
+static ssize_t android_store_manufacturer_name(struct device *dev, 
+						struct device_attribute *attr,
+						const char* buf, size_t size)
+{
+	strncpy(g_manufacturer_name, buf, sizeof(g_manufacturer_name));
+	g_manufacturer_name[sizeof(g_manufacturer_name) - 1] = 0;
+	strings_dev[STRING_MANUFACTURER_IDX].s = g_manufacturer_name;
+	return size;
+}
+
+static ssize_t android_show_mass_vendor_name(struct device *dev,
+			     struct device_attribute *attr,
+					      char *buf)
+{
+	int len = 0;
+	
+	len = scnprintf(buf, PAGE_SIZE,
+			"hsusb mass manufacturer_name is %s\n",
+			g_mass_vendor_name);
+	return len;
+}
+
+
+static ssize_t android_store_mass_vendor_name(struct device *dev, 
+						struct device_attribute *attr,
+						const char* buf, size_t size)
+{
+	strncpy(g_mass_vendor_name, buf, sizeof(g_mass_vendor_name));
+	g_mass_vendor_name[sizeof(g_mass_vendor_name) - 1] = 0;
+	return size;
+}
+
+const char * get_mass_vendor_name(void)
+{
+	return g_mass_vendor_name;
+}
+EXPORT_SYMBOL(get_mass_vendor_name);
+
+static DEVICE_ATTR(exwork, 0664,
+		   msm_hsusb_show_exwork, NULL);
+static DEVICE_ATTR(enable_switch, 0664,
+		   NULL, msm_hsusb_store_enable_switch);
+
+static DEVICE_ATTR(linux_switch, 0664,
+		   NULL, msm_hsusb_store_enable_linux_switch);
+static DEVICE_ATTR(cur_pid, 0664,
+		   NULL, msm_hsusb_store_cur_pid);
+static DEVICE_ATTR(switch_pid, 0664,
+		   NULL, msm_hsusb_store_switch_pid);
+static DEVICE_ATTR(linux_pid, 0664,
+		   NULL, msm_hsusb_store_linux_pid);
+static DEVICE_ATTR(pidnv, 0664,
+                   msm_hsusb_show_pidnv, msm_hsusb_set_pidnv);
+static DEVICE_ATTR(ftm_mode, 0664,
+                   msm_hsusb_show_ftm, NULL);
+
+static DEVICE_ATTR(enable_cdrom, 0664,
+		msm_hsusb_show_enable_cdrom, msm_hsusb_store_enable_cdrom);
+
+static DEVICE_ATTR(product_name, 0664,
+		   android_show_product_name, android_store_product_name);
+
+static DEVICE_ATTR(manufacturer_name, 0664,
+		android_show_manufacturer_name, android_store_manufacturer_name);
+static DEVICE_ATTR(mass_vendor_name, 0664,
+		   android_show_mass_vendor_name, android_store_mass_vendor_name);
+
 
 static struct attribute *android_func_attrs[] = {
 	&dev_attr_adb.attr,
@@ -182,9 +578,27 @@ static struct attribute *android_func_attrs[] = {
 	&dev_attr_diag.attr,
 	&dev_attr_modem.attr,
 	&dev_attr_nmea.attr,
+	&dev_attr_at.attr,
 	&dev_attr_cdc_ecm.attr,
 	&dev_attr_rmnet.attr,
 	&dev_attr_rndis.attr,
+
+	&dev_attr_exwork.attr,
+	&dev_attr_cur_pid.attr,
+	&dev_attr_switch_pid.attr,
+	&dev_attr_linux_pid.attr,
+	&dev_attr_linux_switch.attr,
+	&dev_attr_enable_switch.attr,
+	
+
+	&dev_attr_pidnv.attr,
+	&dev_attr_ftm_mode.attr,
+	&dev_attr_enable_cdrom.attr, 
+
+	&dev_attr_manufacturer_name.attr,
+	&dev_attr_product_name.attr,
+	&dev_attr_mass_vendor_name.attr,
+
 	NULL,
 };
 
@@ -210,7 +624,7 @@ static int  android_bind_config(struct usb_configuration *c)
 			break;
 		case ANDROID_MSC:
 			ret = mass_storage_function_add(dev->cdev, c,
-								dev->nluns);
+					     (usb_cdrom_is_enable()||enble_cdrom_after_switch())?2:dev->nluns);
 			if (ret)
 				return ret;
 			break;
@@ -242,6 +656,13 @@ static int  android_bind_config(struct usb_configuration *c)
 			if (ret)
 				return ret;
 			break;
+		/*ZTE_USB_WZY_101021 start*/	
+		case ANDROID_GENERIC_AT:
+			ret = gser_bind_config(c, 2);
+			if (ret)
+				return ret;
+			break;	
+		/*ZTE_USB_WZY_101021 end*/	
 #endif
 #ifdef CONFIG_USB_ANDROID_CDC_ECM
 		case ANDROID_CDC_ECM:
@@ -288,6 +709,7 @@ static int get_num_of_serial_ports(void)
 		case ANDROID_ACM_NMEA:
 		case ANDROID_GENERIC_MODEM:
 		case ANDROID_GENERIC_NMEA:
+		case ANDROID_GENERIC_AT:	
 			ports++;
 		}
 		n = n >> 4;
@@ -357,11 +779,18 @@ static int  android_bind(struct usb_composite_dev *cdev)
 	strings_dev[STRING_PRODUCT_IDX].id = id;
 	device_desc.iProduct = id;
 
-	id = usb_string_id(cdev);
-	if (id < 0)
-		return id;
-	strings_dev[STRING_SERIAL_IDX].id = id;
-	device_desc.iSerialNumber = id;
+
+	if (!is_ftm_mode()) {
+		id = usb_string_id(cdev);
+		if (id < 0)
+			return id;
+		strings_dev[STRING_SERIAL_IDX].id = id;
+		device_desc.iSerialNumber = id;
+	} else {
+		strings_dev[STRING_SERIAL_IDX].id = 0;
+		device_desc.iSerialNumber = 0;
+	}
+	
 
 	device_desc.idProduct = __constant_cpu_to_le16(product_id);
 	/* Supporting remote wakeup for mass storage only function
@@ -429,6 +858,13 @@ static int  android_bind(struct usb_composite_dev *cdev)
 		device_desc.bDeviceClass         = USB_CLASS_MISC;
 		device_desc.bDeviceSubClass      = 0x02;
 		device_desc.bDeviceProtocol      = 0x01;
+
+		if (!support_assoc_desc()) {
+			device_desc.bDeviceClass         =  USB_CLASS_WIRELESS_CONTROLLER;
+			device_desc.bDeviceSubClass      = 0;
+			device_desc.bDeviceProtocol      = 0;
+		}
+
 	} else {
 		device_desc.bDeviceClass         = USB_CLASS_PER_INTERFACE;
 		device_desc.bDeviceSubClass      = 0;
@@ -483,7 +919,7 @@ static int android_switch_composition(u16 pid)
 		product_id = func->product_id;
 		dev->functions = func->functions;
 	}
-
+	printk("usb:%s: %d: current pid 0x%x\n", __FUNCTION__, __LINE__, product_id);
 	usb_composite_unregister(&android_usb_driver);
 	ret = usb_composite_register(&android_usb_driver);
 
@@ -539,7 +975,7 @@ static int android_set_pid(const char *val, struct kernel_param *kp)
 	ret = strict_strtoul(val, 16, &tmp);
 	if (ret)
 		goto out;
-
+	printk("usb:%s: %d 0x%lx\n", __FUNCTION__, __LINE__, tmp);
 	/* We come here even before android_probe, when product id
 	 * is passed via kernel command line.
 	 */
@@ -547,10 +983,13 @@ static int android_set_pid(const char *val, struct kernel_param *kp)
 		product_id = tmp;
 		goto out;
 	}
-
+	
 	mutex_lock(&_android_dev->lock);
 	ret = android_switch_composition(tmp);
 	mutex_unlock(&_android_dev->lock);
+
+	clear_switch_flag();
+
 out:
 	return ret;
 }
@@ -672,8 +1111,13 @@ static int __init init(void)
 		goto out;
 	}
 
+	config_ftm_from_tag();
+	config_ftm_from_nv();
+
 	_android_dev = dev;
 	mutex_init(&dev->lock);
+
+	create_usb_work_queue();
 
 	ret = adb_function_init();
 	if (ret)
@@ -738,5 +1182,242 @@ static void __exit cleanup(void)
 	adb_function_exit();
 	kfree(_android_dev);
 	_android_dev = NULL;
+
+	destroy_usb_work_queue();
+
 }
 module_exit(cleanup);
+
+static int create_usb_work_queue(void)
+{
+	struct usb_ex_work *p = &global_usbwork;
+	if (p->workqueue) {
+		printk(KERN_ERR"usb:workqueue has created");
+		return 0;
+	}
+	spin_lock_init(&p->lock);
+	p->enable_switch = 1;
+	p->enable_linux_switch = 0;
+	p->switch_pid = PRODUCT_ID_MS_ADB;
+	p->linux_pid = PRODUCT_ID_MS_ADB;
+	p->cur_pid = PRODUCT_ID_MS_CDROM;
+	p->has_switch = 0;
+	p->workqueue = create_singlethread_workqueue("usb_workqueue");
+	if (NULL == p->workqueue) {
+		printk(KERN_ERR"usb:workqueue created fail");
+		p->enable_switch = 0;
+		return -1;
+	}
+	INIT_DELAYED_WORK(&p->switch_work, usb_switch_work);
+	INIT_DELAYED_WORK(&p->linux_switch_work, usb_switch_os_work);
+	INIT_DELAYED_WORK(&p->plug_work, usb_plug_work);
+	return 0;
+}
+
+static int destroy_usb_work_queue(void)
+{
+	struct usb_ex_work *p = &global_usbwork;
+	if (NULL != p->workqueue) {
+		destroy_workqueue(p->workqueue);
+		p->workqueue = NULL;
+	}
+	memset(&global_usbwork, 0, sizeof(global_usbwork));
+	return 0;
+}
+
+static void usb_plug_work(struct work_struct *w)
+{
+	unsigned long flags;
+	int pid = 0;
+	struct usb_ex_work *p = container_of(w, struct usb_ex_work, plug_work.work);
+
+	if (!_android_dev) {
+
+		printk(KERN_ERR"usb:%s: %d: _android_dev == NULL\n",
+		       __FUNCTION__, __LINE__);
+		return ;
+	}
+	
+	spin_lock_irqsave(&p->lock, flags);
+	if (!p->has_switch) {
+		printk("usb:rms: %s %d: \n", __FUNCTION__, __LINE__);
+		spin_unlock_irqrestore(&p->lock, flags);
+		return ;
+	}
+	printk("usb:rms: %s %d: \n", __FUNCTION__, __LINE__);
+	p->has_switch = 0;
+	pid = p->cur_pid;
+	spin_unlock_irqrestore(&p->lock, flags);
+	//enable_cdrom(1);
+	//DBG("plug work");
+	printk("usb:rms %s:%d pid 0x%x cur_pid 0x%x\n",
+	       __FUNCTION__, __LINE__, product_id, pid);
+
+	mutex_lock(&_android_dev->lock);
+	android_switch_composition((unsigned short)pid);
+	mutex_unlock(&_android_dev->lock);
+
+	return ;
+}
+
+static void usb_switch_work(struct work_struct *w)
+{
+	struct usb_ex_work *p = container_of(w, struct usb_ex_work, switch_work.work);
+	unsigned long flags;
+	if (!_android_dev) {
+
+		printk(KERN_ERR"usb:%s: %d: _android_dev == NULL\n",
+		       __FUNCTION__, __LINE__);
+		return ;
+	}
+	if (!p->enable_switch) {
+		return ;
+	}
+	if (p->has_switch) {
+		printk("usb:rms:%s %d: already switch pid 0x%x switch_pid 0x%x\n",
+		       __FUNCTION__, __LINE__, product_id, p->switch_pid);
+		return ;
+	}
+	spin_lock_irqsave(&p->lock, flags);
+//	p->cur_pid = ui->composition->product_id;
+	p->has_switch = 1;
+	spin_unlock_irqrestore(&p->lock, flags);
+//	DBG("auto switch usb mode");
+	printk("usb:rms:%s %d: pid 0x%x switch_pid 0x%x\n",
+	       __FUNCTION__, __LINE__, product_id, p->switch_pid);
+	//enable_cdrom(0);
+
+	mutex_lock(&_android_dev->lock);
+	android_switch_composition((unsigned short)p->switch_pid);
+	mutex_unlock(&_android_dev->lock);
+
+	return ;
+}
+
+static void usb_switch_os_work(struct work_struct *w)
+{
+	struct usb_ex_work *p =
+		container_of(w, struct usb_ex_work, linux_switch_work.work);
+	unsigned long flags;
+
+	if (!_android_dev) {
+
+		printk(KERN_ERR"usb:%s: %d: _android_dev == NULL\n",
+		       __FUNCTION__, __LINE__);
+		return ;
+	}
+
+	if (!p->enable_switch || !p->enable_linux_switch || p->has_switch) {
+		//switch  or linux_switch are enable, or we has already switch,return direct
+		printk("usb:rms:%s:%d, switch %s: linux switch %s: %s switch\n",
+		       __FUNCTION__, __LINE__, p->enable_switch?"enable":"disable",
+		       p->enable_linux_switch?"enable":"disable",
+		       p->has_switch?"has":"has not");
+		return ;
+	}
+	spin_lock_irqsave(&p->lock, flags);
+//	p->cur_pid = ui->composition->product_id;
+	p->has_switch = 1;
+	spin_unlock_irqrestore(&p->lock, flags);
+	printk("usb:rms:%s %d: pid 0x%x linux_pid 0x%x\n",
+	       __FUNCTION__, __LINE__, product_id, p->linux_pid);
+
+	mutex_lock(&_android_dev->lock);
+	android_switch_composition((unsigned short)p->linux_pid);
+	mutex_unlock(&_android_dev->lock);
+
+	return ;
+}
+
+void schedule_cdrom_stop(void)
+{
+	
+	if (NULL == global_usbwork.workqueue) {
+		return ;
+	}
+	queue_delayed_work(global_usbwork.workqueue, &global_usbwork.switch_work, HZ/10);
+
+	return;
+}
+EXPORT_SYMBOL(schedule_cdrom_stop);
+void schedule_linux_os(void)
+{
+	if (NULL == global_usbwork.workqueue) {
+		return ;
+	}
+	queue_delayed_work(global_usbwork.workqueue,
+			   &global_usbwork.linux_switch_work, 0);
+
+	return;
+}
+EXPORT_SYMBOL(schedule_linux_os);
+
+void schedule_usb_plug(void)
+{
+	
+	if (NULL == global_usbwork.workqueue) {
+		return ;
+	}
+	printk("usb:rms: %s %d: \n", __FUNCTION__, __LINE__);
+	queue_delayed_work(global_usbwork.workqueue, &global_usbwork.plug_work, 0);
+
+	return ;
+}
+EXPORT_SYMBOL(schedule_usb_plug);
+
+static void clear_switch_flag(void)
+{
+	unsigned long flags;
+	struct usb_ex_work *p = &global_usbwork;
+	spin_lock_irqsave(&p->lock, flags);
+	p->has_switch = 0;
+	spin_unlock_irqrestore(&p->lock, flags);
+
+	return ;
+}
+
+
+static int usb_cdrom_is_enable(void)
+{
+	return (PRODUCT_ID_MS_CDROM == product_id) ? 1:0;
+}
+
+
+static int enble_cdrom_after_switch(void)
+{
+	return g_enable_cdrom;	
+        /* int enable = 0; */
+	/* unsigned short temp, i=0; */
+	
+        /* if (NULL == product_id) { */
+        /*         printk(KERN_ERR"usb: error %s %d\n", __FUNCTION__, __LINE__); */
+        /*         return 0; */
+        /* } */
+ 
+	/* temp=g_enable_cdrom;	 */
+	/* if(0xFFFF==temp) { */
+	/* 	enable = 1; */
+	/* }else{ */
+	/* 	while(temp){ */
+	/* 		i = 31 - __builtin_clz(temp); */
+	/* 		if(zte_usb_pid[i]==product_id){ */
+	/* 			enable=1; */
+	/* 			break; */
+	/* 		} */
+	/* 		temp&=~(1<<i); */
+	/* 	} */
+	/* } */
+        /* printk("usb: %s: pid: 0x%x cdrom: %s\n",__FUNCTION__, */
+	/*        product_id,enable ?"enable":"disable"); */
+
+        /* return enable; */
+}
+EXPORT_SYMBOL(enble_cdrom_after_switch);
+
+int os_switch_is_enable(void)
+{
+	struct usb_ex_work *p = &global_usbwork;
+	
+	return usb_cdrom_is_enable()?(p->enable_linux_switch) : 0;
+}
+EXPORT_SYMBOL(os_switch_is_enable);

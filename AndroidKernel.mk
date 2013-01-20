@@ -1,5 +1,6 @@
 #Android makefile to build kernel as a part of Android Build
-
+#zenghuipeng	add oprofile.ko driver.  ZHP_OPROFILE_20101109
+#ouyanghuiqin copy dhd.ko for compile problem. ZTE_WIFI_OYHQ_20110106
 ifeq ($(TARGET_PREBUILT_KERNEL),)
 
 KERNEL_OUT := $(TARGET_OUT_INTERMEDIATES)/KERNEL_OBJ
@@ -24,7 +25,16 @@ $(KERNEL_OUT)/piggy : $(TARGET_PREBUILT_INT_KERNEL)
 $(TARGET_PREBUILT_INT_KERNEL): $(KERNEL_OUT) $(KERNEL_CONFIG)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi-
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- modules
-
+	#ZHP_OPROFILE_20101109 add start
+	mkdir -p ./$(KERNEL_OUT)/../../system/lib
+	cp -f ./$(KERNEL_OUT)/arch/arm/oprofile/oprofile.ko ./$(KERNEL_OUT)/../../system/lib
+	
+	#ZTE_WIFI_OYHQ_20110106
+	#$(shell if [ -e $(./$(KERNEL_OUT)/drivers/net/wireless/bcm4319/dhd.ko) ]; then cp -f ./$(KERNEL_OUT)/drivers/net/wireless/bcm4319/dhd.ko ./$(KERNEL_OUT)/../../system/lib;  fi;)
+ifeq ($(BOARD_USES_BCM_WIFI),true)
+	cp -f ./$(KERNEL_OUT)/drivers/net/wireless/bcm4319/dhd.ko ./$(KERNEL_OUT)/../../system/lib
+endif
+	#ZHP_OPROFILE_20101109 add end
 kerneltags: $(KERNEL_OUT) $(KERNEL_CONFIG)
 	$(MAKE) -C kernel O=../$(KERNEL_OUT) ARCH=arm CROSS_COMPILE=arm-eabi- tags
 

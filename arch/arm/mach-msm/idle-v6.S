@@ -16,21 +16,27 @@
  *
  */
 
+/*
+*  2010-09-03   wxw        add the msm_pm_swfi patch from Qualcomm 53303006. flag:ZTE_MSM_PM_SWFI_PATCH_WXW_001
+   20100927    liuyijian  ENTRY(msm_arch_idle)QUALCOMM ZTE_MSM_PM_SWFI_PATCH_LYJ_001
+*/ 
+
 #include <linux/linkage.h>
 #include <asm/assembler.h>
 
 .extern write_to_strongly_ordered_memory
-
+//ZTE_MSM_PM_SWFI_PATCH_LYJ_001 START
 ENTRY(msm_arch_idle)
-	cpsid   af
+	mrs	r2, cpsr		/* save the CPSR state */
+	cpsid   iaf			/* explictly disable I,A and F */
 
 #if defined(CONFIG_ARCH_MSM7X27)
 	mov     r0, #0
 	mcr     p15, 0, r0, c7, c10, 0   /* flush entire data cache */
 	mcr     p15, 0, r0, c7, c10, 4   /* dsb                */
-	stmfd   sp!, {lr}
+	stmfd   sp!, {r2, lr}            /* preserve r2, thus CPSR and LR */
 	bl      write_to_strongly_ordered_memory  /* flush AXI bus buffer */
-	ldmfd   sp!, {lr}
+	ldmfd   sp!, {r2, lr}
 	mcr     p15, 0, r0, c7, c0, 4    /* wait for interrupt */
 #else
 	mrc     p15, 0, r1, c1, c0, 0    /* read current CR    */
@@ -50,9 +56,9 @@ ENTRY(msm_arch_idle)
 	mcr     p15, 0, r0, c7, c5, 4    /* isb                */
 #endif
 
-	cpsie   af
+	msr	cpsr_c, r2		/* restore the CPSR state */
 	mov     pc, lr
-
+//ZTE_MSM_PM_SWFI_PATCH_LYJ_001 END
 ENTRY(msm_pm_collapse)
 	ldr     r0, =saved_state
 	stmia   r0!, {r4-r14}

@@ -25,6 +25,15 @@
 /* This driver has optional support for low power wakeup on a rx gpio. This is
  * useful for peripherals that send unsolicited RX such as Bluetooth.
  */
+/* ========================================================================================
+when         who        what, where, why                             comment tag
+--------     ----       -----------------------------                ----------------------
+2011-02-24   ytc		remove the dma wake lock to let the device can sleep ZTE_MODMEMCTL_YTC_20110224
+2010-06-12   hyj      modify the debug code                           ZTE_MODMEMCTL_HYJ_20100618
+2010-05-20   wxw     add uport interfaces for the UART DM2            ZTE_WXW_MODEMCTL_UPORT_100520
+2010-05-11   wxw     add the tty layer logs                                   ZTE_MODMEMCTL_WXW_20100511_01
+2010-03-29   wxw     add some interfaces for the UART DM2            ZTE_WXW_MODEMCTL_UART_100329
+==========================================================================================*/
 
 #include <linux/module.h>
 
@@ -57,9 +66,13 @@
 
 #include "msm_serial_hs_hwreg.h"
 
+/*
+//ZTE_SERIAL_LOG_WXW, 20101215, begin, delet the foryo serial log mask
 static int hs_serial_debug_mask = 1;
 module_param_named(debug_mask, hs_serial_debug_mask,
 		   int, S_IRUGO | S_IWUSR | S_IWGRP);
+//ZTE_SERIAL_LOG_WXW, 20101215, end, delet the foryo serial log mask
+*/
 
 enum flush_reason {
 	FLUSH_NONE,
@@ -153,6 +166,52 @@ struct msm_hs_port {
 	struct msm_hs_wakeup wakeup;
 	struct wake_lock dma_wake_lock;  /* held while any DMA active */
 };
+
+
+
+//ZTE_MODMEMCTL_WXW_20100511_01, begin
+#define MODEMCTL_MSMSERIAL_LOG
+//ZTE_MODMEMCTL_WXW_20100511_01, end
+
+//ZTE_MODMEMCTL_HYJ_20100618, begin, add the debug code
+#if defined(MODEMCTL_MSMSERIAL_LOG)
+enum {
+	SERIAL_HS_DEBUG_INFO = 1U << 0,
+	SERIAL_HS_DEBUG_WARNING = 1U << 2,
+	SERIAL_HS_DEBUG_ERR = 1U << 1,
+};
+/*
+static int serial_hs_debug_mask = SERIAL_HS_DEBUG_ERR;
+module_param_named(
+	debug_mask, serial_hs_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
+);
+*/
+//ZTE_SERIAL_LOG_WXW, 20101215, begin, match the foryo serical log machine
+static int hs_serial_debug_mask = SERIAL_HS_DEBUG_ERR;
+module_param_named(debug_mask, hs_serial_debug_mask,
+		   int, S_IRUGO | S_IWUSR | S_IWGRP);
+//ZTE_SERIAL_LOG_WXW, 20101215, end, match the foryo serical log machine
+
+#define SERIAL_HS_INFO(fmt, arg...) \
+	do { \
+		if ((SERIAL_HS_DEBUG_INFO) &hs_serial_debug_mask) \
+			printk(KERN_INFO "serial_hs: %s: " fmt "\n", __func__  , ## arg); \
+	} while (0)
+
+	#define SERIAL_HS_WAR(fmt, arg...) \
+	do { \
+		if ((SERIAL_HS_DEBUG_WARNING) &hs_serial_debug_mask) \
+			printk(KERN_WARNING "tty_io: %s: " fmt "\n", __func__  , ## arg); \
+	} while (0)
+	
+	#define SERIAL_HS_ERR(fmt, arg...) \
+	do { \
+		if ((SERIAL_HS_DEBUG_ERR) &hs_serial_debug_mask) \
+			printk(KERN_ERR "tty_io: %s: " fmt "\n", __func__  , ## arg); \
+	} while (0)
+	
+#endif
+//ZTE_MODMEMCTL_HYJ_20100618, end, add the debug code
 
 #define MSM_UARTDM_BURST_SIZE 16   /* DM burst size (in bytes) */
 #define UARTDM_TX_BUF_SIZE UART_XMIT_SIZE
@@ -294,8 +353,9 @@ static int msm_hs_init_clk(struct uart_port *uport)
 {
 	int ret;
 	struct msm_hs_port *msm_uport = UARTDM_TO_MSM(uport);
-
-	wake_lock(&msm_uport->dma_wake_lock);
+#ifndef CONFIG_MACH_R750
+    wake_lock(&msm_uport->dma_wake_lock);//ZTE_MODMEMCTL_YTC_20110224
+    #endif
 	/* Set up the MREG/NREG/DREG/MNDREG */
 	ret = clk_set_rate(msm_uport->clk, uport->uartclk);
 	if (ret) {
@@ -555,6 +615,79 @@ unsigned int msm_hs_tx_empty(struct uart_port *uport)
 }
 EXPORT_SYMBOL(msm_hs_tx_empty);
 
+//ZTE_WXW_MODEMCTL_UART_100329, begin, add some interfaces for the UART DM2
+#ifdef CONFIG_MODEMCTL
+
+//ZTE_WXW_MODEMCTL_UPORT_100520, begin
+/*
+ *  Standard API, getuartport
+ *  get the uart port form msm_hs_dm1
+ */
+
+struct uart_port * msm_hs_dm1_getuartport(void)
+{
+      //get the uart dm1 msm port
+	struct msm_hs_port *msm_uport = NULL;
+      	msm_uport = &q_uart_port[1];
+      if(!msm_uport) 
+      {
+          printk(KERN_WARNING "@@ Error get the device /dev/ttyHS1--q_uart_port[1], maybe not init \n");
+	    return NULL;
+      }
+      return &(msm_uport->uport);
+}
+EXPORT_SYMBOL(msm_hs_dm1_getuartport);
+
+//ZTE_WXW_MODEMCTL_UPORT_100520, end
+
+/*
+ *  Standard API, Transmitter
+ *  Any character in the transmit shift register is sent
+ */
+ //#define MODEMCTL_UARTDM1_UNINIT  2
+unsigned int msm_hs_dm1_tx_empty(void)
+{
+	unsigned int data;
+	unsigned int ret = 0;
+
+      //get the uart dm1 msm port
+	struct msm_hs_port *msm_uport = NULL;
+      
+//ZTE_MODMEMCTL_WXW_20100511_01,begin
+#ifdef MODEMCTL_MSMSERIAL_LOG
+      SERIAL_HS_INFO("@@@@ msm_hs_dm1_tx_empty++ \n");
+#endif
+//ZTE_MODMEMCTL_WXW_20100511_01,end
+
+	msm_uport = &q_uart_port[1];
+      if(!msm_uport) 
+      {
+          printk(KERN_WARNING "@@ Error get the device /dev/ttyHS1--q_uart_port[1], maybe not init \n");
+	    return MODEMCTL_UARTDM1_UNINIT;
+      }
+      
+      //to judge the TXEMT register
+	clk_enable(msm_uport->clk);
+    
+	data = msm_hs_read(&(msm_uport->uport), UARTDM_SR_ADDR);
+	if (data & UARTDM_SR_TXEMT_BMSK)
+		ret = TIOCSER_TEMT;
+
+	clk_disable(msm_uport->clk);
+    
+//ZTE_MODMEMCTL_WXW_20100511_01,begin
+#ifdef MODEMCTL_MSMSERIAL_LOG
+      SERIAL_HS_INFO("@@@@ msm_hs_dm1_tx_empty-- the ret  = %d\n", ret);  
+#endif
+//ZTE_MODMEMCTL_WXW_20100511_01,end
+
+	return ret;
+}
+EXPORT_SYMBOL(msm_hs_dm1_tx_empty);
+
+#endif
+//ZTE_WXW_MODEMCTL_UART_100329, end, add some interfaces for the UART DM2
+
 /*
  *  Standard API, Stop transmitter.
  *  Any character in the transmit shift register is sent as
@@ -620,6 +753,13 @@ static void msm_hs_submit_tx_locked(struct uart_port *uport)
 	tx->dma_in_flight = 1;
 
 	tx_count = uart_circ_chars_pending(tx_buf);
+//ZTE_MODMEMCTL_WXW_20100511_01,begin
+#ifdef MODEMCTL_MSMSERIAL_LOG
+    //printk(KERN_ERR "$$$$ before the log\n");
+    SERIAL_HS_INFO("$$$$  %s: the tx_count = %d \n" , __func__ ,tx_count );
+    //printk(KERN_ERR "$$$$ after the log\n");
+#endif
+//ZTE_MODMEMCTL_WXW_20100511_01,end
 
 	if (UARTDM_TX_BUF_SIZE < tx_count)
 		tx_count = UARTDM_TX_BUF_SIZE;
@@ -1090,7 +1230,9 @@ static int msm_hs_check_clock_off_locked(struct uart_port *uport)
 		msm_uport->wakeup.ignore = 1;
 		enable_irq(msm_uport->wakeup.irq);
 	}
-	wake_unlock(&msm_uport->dma_wake_lock);
+	#ifndef CONFIG_MACH_R750
+    wake_unlock(&msm_uport->dma_wake_lock);//ZTE_MODMEMCTL_YTC_20110224
+    #endif
 	return 1;
 }
 
@@ -1126,6 +1268,11 @@ static irqreturn_t msm_hs_isr(int irq, void *dev)
 	spin_lock_irqsave(&uport->lock, flags);
 
 	isr_status = msm_hs_read(uport, UARTDM_MISR_ADDR);
+//ZTE_MODMEMCTL_WXW_20100511_01, begin
+#ifdef MODEMCTL_MSMSERIAL_LOG
+      SERIAL_HS_INFO("@@@@  the isr_status = %ld \n", isr_status);
+#endif
+//ZTE_MODMEMCTL_WXW_20100511_01, end
 
 	/* Uart RX starting */
 	if (isr_status & UARTDM_ISR_RXLEV_BMSK) {
@@ -1211,7 +1358,9 @@ static void msm_hs_request_clock_on_locked(struct uart_port *uport) {
 
 	switch (msm_uport->clk_state) {
 	case MSM_HS_CLK_OFF:
-		wake_lock(&msm_uport->dma_wake_lock);
+	#ifndef CONFIG_MACH_R750
+        wake_lock(&msm_uport->dma_wake_lock);//ZTE_MODMEMCTL_YTC_20110224
+        #endif
 		clk_enable(msm_uport->clk);
 		disable_irq_nosync(msm_uport->wakeup.irq);
 		/* fall-through */
@@ -1624,7 +1773,9 @@ static void msm_hs_shutdown(struct uart_port *uport)
 	clk_disable(msm_uport->clk);  /* to balance local clk_enable() */
 	if (msm_uport->clk_state != MSM_HS_CLK_OFF) {
 		clk_disable(msm_uport->clk);  /* to balance clk_state */
-		wake_unlock(&msm_uport->dma_wake_lock);
+	#ifndef CONFIG_MACH_R750
+            wake_unlock(&msm_uport->dma_wake_lock);//ZTE_MODMEMCTL_YTC_20110224
+       #endif
 	}
 	msm_uport->clk_state = MSM_HS_CLK_PORT_OFF;
 

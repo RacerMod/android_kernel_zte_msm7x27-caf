@@ -130,4 +130,11 @@ config BATTERY_MSM_FAKE
 	help
 	  Say Y to bypass actual battery queries.
 
+config TI_GAUGE
+	tristate "ti fuel gauge"
+	depends on BATTERY_MSM
+	default m
+	help
+	  Say Y to enable support for the battery in Qualcomm MSM.
+
 endif # POWER_SUPPLY

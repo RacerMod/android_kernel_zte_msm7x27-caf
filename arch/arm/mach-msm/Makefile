@@ -117,7 +117,7 @@ obj-$(CONFIG_MACH_MSM8X60_FFA) += board-msm8x60.o
 obj-$(CONFIG_TROUT_H2W) += board-trout-h2w.o
 obj-$(CONFIG_TROUT_BATTCHG) += htc_battery.o
 obj-$(CONFIG_TROUT_PWRSINK) += htc_pwrsink.o
-obj-$(CONFIG_ARCH_MSM7X27) += board-msm7x27.o devices-msm7x27.o
+obj-$(CONFIG_ARCH_MSM7X27) += devices-msm7x27.o msm_vibrator.o
 obj-$(CONFIG_ARCH_MSM7X30) += board-msm7x30.o devices-msm7x30.o
 obj-$(CONFIG_ARCH_MSM7X30) += clock-7x30.o acpuclock-7x30.o
 obj-$(CONFIG_ARCH_MSM7X25) += board-msm7x27.o devices-msm7x25.o
@@ -147,3 +147,29 @@ obj-$(CONFIG_MSM7200A_TLMM)	+= gpio.o generic_gpio.o
 endif
 obj-$(CONFIG_MSM7200A_TLMM)	+= tlmm-msm7200a.o
 obj-$(CONFIG_MSM8660_TLMM)	+= tlmm-msm8660.o msm8660-gpio.o
+
+obj-$(CONFIG_MACH_BLADE) += board-zte-blade-keypad.o board-zte-blade.o
+
+obj-$(CONFIG_MACH_MOONCAKE) += board-zte-mooncake-keypad.o board-zte-mooncake.o
+
+obj-$(CONFIG_MACH_V9) += board-zte-v9-keypad.o board-zte-v9.o
+
+obj-$(CONFIG_MACH_AMIGO) += board-zte-amigo-keypad.o board-zte-amigo.o
+
+obj-$(CONFIG_MACH_JOECDMA) += board-zte-joecdma-keypad.o board-zte-joecdma.o
+
+obj-$(CONFIG_MACH_R750) += board-zte-r750.o board-zte-r750-keypad.o
+
+obj-$(CONFIG_MACH_BANANA) += board-zte-banana.o board-zte-banana-keypad.o
+
+obj-$(CONFIG_MACH_RACER2) += board-zte-racer2.o board-zte-racer2-keypad.o
+
+obj-$(CONFIG_MACH_ROAMER) += board-zte-roamer.o board-zte-roamer-keypad.o
+
+obj-$(CONFIG_MACH_SKATE) += board-zte-skate.o board-zte-skate-keypad.o
+
+obj-$(CONFIG_MACH_TURIES) += board-zte-turies-keypad.o board-zte-turies.o
+
+obj-$(CONFIG_MACH_SISA) += board-zte-sisa-keypad.o board-zte-sisa.o
+
+obj-$(CONFIG_MACH_JOE) += board-zte-joe-keypad.o board-zte-joe.o

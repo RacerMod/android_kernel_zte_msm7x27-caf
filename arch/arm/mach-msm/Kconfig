@@ -139,6 +139,157 @@ config MACH_MSM7X27_FFA
 	help
 	  Support for the Qualcomm MSM7x27 FFA eval board.
 
+config ZTE_PLATFORM
+	bool "ZTE Platform"	
+	default y
+	help
+	  Global macro for ZTE code	  
+	  
+config F3_LOG
+        depends on ARCH_MSM
+        depends on !MSM_STACKED_MEMORY
+        default y
+        bool "F3 Log"
+        help
+          Support for F3 log.	  
+
+config MACH_BLADE
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE BLADE"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 Blade phone.
+
+config MACH_BLADE_CAMERA5MP
+	depends on MACH_BLADE
+	default n
+	bool "ZTE blade board,5MP camera."
+	help
+	  Support for the ZTE blade board,5MP camera.
+	  
+config MACH_MOONCAKE
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE MOONCAKE"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 mooncake phone.	
+	    
+config MACH_V9
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE V9"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 v9 phone.	
+	  
+config MACH_SISA
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE SISA"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 sisa phone.	
+	
+config MACH_JOE
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE JOE"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 joe phone.	
+	  
+config MACH_R750
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE R750"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 r750 phone.		    		   	  
+
+config MACH_BANANA
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE BANANA"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 banana phone.	
+	  
+config MACH_RACER2
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE_RACER2"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 racer2 phone.	
+	  
+config MACH_AMIGO
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE AMIGO"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 amigo phone.	
+	  
+config MACH_JOECDMA
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE JOECDMA"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 joeCDMA phone.		  
+	  
+# ZTE turies add by wangxiaowei 20101118
+config MACH_TURIES
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE_TURIES"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 turies phone. 
+	  
+config MACH_SKATE
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE SKATE"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 Skate phone.
+
+config MACH_ROAMER
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE ROAMER"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 Roamer phone.
+	  
+config MSM_CAMERA_N600_PLUS_LOWCOST
+	default n
+	bool "ZTE N606 PLUS LOWCOST CAMERA"
+	help
+	  Support for the ZTE MSM7x27 N606 phone.
+	  
+# ZTE_FTM_FLAG_SUPPORT
+config ZTE_FTM_FLAG_SUPPORT
+	depends on ZTE_PLATFORM
+	default y
+	bool "enable ZTE handset FTM mode detect."
+
 config MACH_MSM7X30_SURF
        depends on ARCH_MSM7X30
        depends on !MSM_STACKED_MEMORY
@@ -314,7 +465,7 @@ config MSM_STACKED_MEMORY
 
 config PHYS_OFFSET
 	hex
-	default "0x00200000" if !MSM_STACKED_MEMORY
+	default "0x02600000" if !MSM_STACKED_MEMORY
 	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
 	default "0x20000000" if ARCH_QSD8X50
 	default "0x40200000" if ARCH_MSM8X60
@@ -521,6 +672,11 @@ config MSM_JTAG_V7
         bool "JTAG debug support"
 	help
           Add additional support for JTAG kernel debugging.
+
+config MSM_GPIO_WAKE
+	depends on ZTE_PLATFORM
+	default n
+	bool "Enable some keygpio wakeup feature."
 
 config HTC_HEADSET
 	tristate "HTC 2 Wire detection driver"

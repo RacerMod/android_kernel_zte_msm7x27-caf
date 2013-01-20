@@ -40,10 +40,18 @@ void map_zero_page_strongly_ordered(void);
 
 #include <asm/mach-types.h>
 
+/*
 #define arch_barrier_extra() do \
-	{ if (machine_is_msm7x27_surf() || machine_is_msm7x27_ffa())  \
+	{ if (machine_is_msm7x27_surf() || machine_is_msm7x27_ffa() || machine_is_blade())  \
 		write_to_strongly_ordered_memory(); \
 	} while (0)
+*/
+
+#define arch_barrier_extra() do \
+	{\
+		write_to_strongly_ordered_memory(); \
+	} while (0)
+ 	
 #endif
 
 #ifdef CONFIG_CACHE_L2X0

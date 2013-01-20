@@ -21,6 +21,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, you can find it at http://www.fsf.org
  */
+/*===========================================================================
+when       who       what, where, why                                                comment tag
+--------   ----    -------------------------------------    ----------------------------------
+===========================================================================*/
 
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -199,6 +203,7 @@ static int audio_enable(struct audio *audio)
 	if (audio->enabled)
 		return 0;
 
+	audio->dec_state = MSM_AUD_DECODER_STATE_NONE;
 	audio->out_tail = 0;
 	audio->out_needed = 0;
 
@@ -822,7 +827,6 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case AUDIO_START:
 		MM_DBG("AUDIO_START\n");
-		audio->dec_state = MSM_AUD_DECODER_STATE_NONE;
 		rc = audio_enable(audio);
 		if (!rc) {
 			rc = wait_event_interruptible_timeout(audio->wait,
@@ -1413,6 +1417,7 @@ static void audwmapro_suspend(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audwmapro_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
+	suspend_allow_suspend();
 }
 
 static void audwmapro_resume(struct early_suspend *h)
@@ -1423,6 +1428,7 @@ static void audwmapro_resume(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audwmapro_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
+	resume_prevent_suspend();
 }
 #endif
 

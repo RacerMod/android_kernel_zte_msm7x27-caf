@@ -1,5 +1,6 @@
-#warning compile out
-#if 0
+//#warning compile out
+//#if 0
+//#if defined(CONFIG_MACH_AMIGO)//ZTE_KEY_XIAYC_20101026
 /* drivers/input/misc/gpio_input.c
  *
  * Copyright (C) 2007 Google, Inc.
@@ -14,6 +15,9 @@
  * GNU General Public License for more details.
  *
  */
+/*
+ *  2010-10-26	xiayuchun   support flip detect for P735F	ZTE_KEY_XIAYC_20101026
+*/
 
 #include <linux/kernel.h>
 #include <linux/gpio.h>
@@ -352,4 +356,4 @@ err_bad_keymap:
 err_ds_alloc_failed:
 	return ret;
 }
-#endif
+//#endif

@@ -11,8 +11,14 @@
  * - Based on mmci.h
  */
 
+
 #ifndef _MSM_SDCC_H
 #define _MSM_SDCC_H
+
+#define MSMSDCC_CRCI_SDC1	6
+#define MSMSDCC_CRCI_SDC2	7
+#define MSMSDCC_CRCI_SDC3	12
+#define MSMSDCC_CRCI_SDC4	13
 
 #define MMCIPOWER		0x000
 #define MCI_PWR_OFF		0x00
@@ -208,6 +214,9 @@ struct msmsdcc_curr_req {
 	unsigned int		xfer_remain;	/* Bytes remaining to send */
 	unsigned int		data_xfered;	/* Bytes acked by BLKEND irq */
 	int			got_dataend;
+
+	int			got_datablkend;
+
 	int			user_pages;
 };
 
@@ -264,6 +273,15 @@ struct msmsdcc_host {
 	unsigned int	dummy_52_needed;
 	unsigned int	dummy_52_state;
 
+ 
+	struct work_struct	redetect;
+
+	struct timer_list       command_timer;
+
+
+	struct workqueue_struct   *workqueue;
+	struct delayed_work	cmd_timeout_work;
+	struct mmc_request	*timeout_mrq;
 };
 
 #endif

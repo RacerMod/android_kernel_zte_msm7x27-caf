@@ -21,6 +21,10 @@
  * along with this program; if not, you can find it at http://www.fsf.org.
  *
  */
+/*===========================================================================
+when       who       what, where, why                                                comment tag
+--------   ----    -------------------------------------    ----------------------------------
+===========================================================================*/
 
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -182,6 +186,7 @@ static int audqcelp_enable(struct audio *audio)
 	if (audio->enabled)
 		return 0;
 
+	audio->dec_state = MSM_AUD_DECODER_STATE_NONE;
 	audio->out_tail = 0;
 	audio->out_needed = 0;
 
@@ -786,7 +791,6 @@ static long audqcelp_ioctl(struct file *file, unsigned int cmd,
 	switch (cmd) {
 	case AUDIO_START:
 		MM_DBG("AUDIO_START\n");
-		audio->dec_state = MSM_AUD_DECODER_STATE_NONE;
 		rc = audqcelp_enable(audio);
 		if (!rc) {
 			rc = wait_event_interruptible_timeout(audio->wait,
@@ -1273,6 +1277,7 @@ static void audqcelp_suspend(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audqcelp_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
+	suspend_allow_suspend();
 }
 
 static void audqcelp_resume(struct early_suspend *h)
@@ -1283,6 +1288,7 @@ static void audqcelp_resume(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audqcelp_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
+	resume_prevent_suspend();
 }
 #endif
 

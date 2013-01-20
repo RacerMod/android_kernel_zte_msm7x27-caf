@@ -12,14 +12,12 @@
  * GNU General Public License for more details.
  *
  */
-
 #include <linux/kernel.h>
 #include <linux/gpio.h>
 #include <linux/gpio_event.h>
 #include <linux/hrtimer.h>
 #include <linux/interrupt.h>
 #include <linux/wakelock.h>
-#include <mach/gpio.h>
 
 struct gpio_kp {
 	struct gpio_event_input_devs *input_devs;
@@ -33,6 +31,7 @@ struct gpio_kp {
 	unsigned int some_keys_pressed:2;
 	unsigned long keys_pressed[0];
 };
+
 
 static void clear_phantom_key(struct gpio_kp *kp, int out, int in)
 {
@@ -267,11 +266,24 @@ static int gpio_keypad_request_irqs(struct gpio_kp *kp)
 				"irq %d\n", mi->input_gpios[i], irq);
 			goto err_request_irq_failed;
 		}
+#if defined (CONFIG_MACH_JOE)
+		if (i==1)
+		{
+			err = set_irq_wake(irq, 1);
+			if (err) {
+				pr_err("gpiomatrix: set_irq_wake failed for input %d, "
+				"irq %d\n", mi->input_gpios[i], irq);
+			}
+		}
+#else
+		#ifndef CONFIG_ZTE_PLATFORM
 		err = set_irq_wake(irq, 1);
 		if (err) {
 			pr_err("gpiomatrix: set_irq_wake failed for input %d, "
 				"irq %d\n", mi->input_gpios[i], irq);
 		}
+		#endif
+#endif
 		disable_irq(irq);
 	}
 	return 0;
@@ -319,6 +331,7 @@ int gpio_event_matrix_func(struct gpio_event_input_devs *input_devs,
 		}
 		kp->input_devs = input_devs;
 		kp->keypad_info = mi;
+		//set_bit(EV_KEY, input_dev->evbit);
 		for (i = 0; i < key_count; i++) {
 			unsigned short keyentry = mi->keymap[i];
 			unsigned short keycode = keyentry & MATRIX_KEY_MASK;
@@ -330,9 +343,9 @@ int gpio_event_matrix_func(struct gpio_event_input_devs *input_devs,
 				err = -EINVAL;
 				goto err_bad_keymap;
 			}
+
 			if (keycode && keycode <= KEY_MAX)
-				input_set_capability(input_devs->dev[dev],
-							EV_KEY, keycode);
+				input_set_capability(input_devs->dev[dev],EV_KEY, keycode);
 		}
 
 		for (i = 0; i < mi->noutputs; i++) {
@@ -390,7 +403,6 @@ int gpio_event_matrix_func(struct gpio_event_input_devs *input_devs,
 		if (kp->use_irq)
 			wake_lock(&kp->wake_lock);
 		hrtimer_start(&kp->timer, ktime_set(0, 0), HRTIMER_MODE_REL);
-
 		return 0;
 	}
 

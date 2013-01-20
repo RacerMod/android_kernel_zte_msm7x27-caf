@@ -251,6 +251,16 @@ int msm_clock_require_tcxo(unsigned long *reason, int nbits)
 
 	return ret;
 }
+ void dump_clock_require_tcxo(void)
+{
+	int i=0;
+	for(i=0;i<BITS_TO_LONGS(NR_CLKS);i++)
+	{
+		if(clock_map_enabled[i]>0)
+			printk("[TCXO] enabled clock id :%d+ 1's position(begin 0) in 0x%lx\n",(32*i),clock_map_enabled[i]);
+	}
+
+}
 
 /*
  * Find the clock matching the given id and copy its name to the

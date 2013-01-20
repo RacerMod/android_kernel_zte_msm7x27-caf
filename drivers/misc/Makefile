@@ -21,6 +21,7 @@ obj-$(CONFIG_KGDB_TESTS)	+= kgdbts.o
 obj-$(CONFIG_SGI_XP)		+= sgi-xp/
 obj-$(CONFIG_SGI_GRU)		+= sgi-gru/
 obj-$(CONFIG_HP_ILO)		+= hpilo.o
+obj-$(CONFIG_FM_SI4708)		+= fm_si4708.o
 obj-$(CONFIG_ISL29003)		+= isl29003.o
 obj-$(CONFIG_EP93XX_PWM)	+= ep93xx_pwm.o
 obj-$(CONFIG_UID_STAT)		+= uid_stat.o
@@ -39,3 +40,6 @@ obj-$(CONFIG_HAPTIC_ISA1200)		+= isa1200.o
 obj-$(CONFIG_PMIC8058_PWM) += pmic8058-pwm.o
 obj-$(CONFIG_PMIC8058_VIBRATOR) += pmic8058-vibrator.o
 obj-$(CONFIG_PMIC8058_NFC) += pmic8058-nfc.o
+#ZTE_MODEMCTL_WXW, 20100414, begin, add the modemctl driver module for R750 item
+obj-$(CONFIG_MODEMCTL)		+= modemctl/
+#ZTE_MODEMCTL_WXW, 20100414, end, add the modemctl driver module for R750 item

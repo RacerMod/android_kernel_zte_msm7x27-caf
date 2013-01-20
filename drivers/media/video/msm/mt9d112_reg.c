@@ -293,7 +293,6 @@ static const struct mt9d112_i2c_reg_conf const pll_setup_tbl[] = {
 	{ 0x341E, 0x8F08, WORD_LEN, 0 }
 };
 
-/* Refresh Sequencer */
 static const struct mt9d112_i2c_reg_conf const sequencer_tbl[] = {
 	{ 0x338C, 0x2799, WORD_LEN, 0},
 	{ 0x3390, 0x6440, WORD_LEN, 5},

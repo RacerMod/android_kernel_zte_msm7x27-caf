@@ -25,12 +25,9 @@
 #include <mach/gpio.h>
 #include "mt9d112.h"
 
-/* Micron MT9D112 Registers and their values */
-/* Sensor Core Registers */
 #define  REG_MT9D112_MODEL_ID 0x3000
 #define  MT9D112_MODEL_ID     0x1580
 
-/*  SOC Registers Page 1  */
 #define  REG_MT9D112_SENSOR_RESET     0x301A
 #define  REG_MT9D112_STANDBY_CONTROL  0x3202
 #define  REG_MT9D112_MCU_BOOT         0x3386
@@ -250,17 +247,14 @@ static long mt9d112_reg_init(void)
 	int32_t i;
 	long rc;
 
-	/* PLL Setup Start */
 	rc = mt9d112_i2c_write_table(&mt9d112_regs.plltbl[0],
 					mt9d112_regs.plltbl_size);
 
 	if (rc < 0)
 		return rc;
-	/* PLL Setup End   */
 
 	array_length = mt9d112_regs.prev_snap_reg_settings_size;
 
-	/* Configure sensor for Preview mode and Snapshot mode */
 	for (i = 0; i < array_length; i++) {
 		rc = mt9d112_i2c_write(mt9d112_client->addr,
 		  mt9d112_regs.prev_snap_reg_settings[i].register_address,
@@ -271,7 +265,6 @@ static long mt9d112_reg_init(void)
 			return rc;
 	}
 
-	/* Configure for Noise Reduction, Saturation and Aperture Correction */
 	array_length = mt9d112_regs.noise_reduction_reg_settings_size;
 
 	for (i = 0; i < array_length; i++) {
@@ -284,7 +277,6 @@ static long mt9d112_reg_init(void)
 			return rc;
 	}
 
-	/* Set Color Kill Saturation point to optimum value */
 	rc =
 	mt9d112_i2c_write(mt9d112_client->addr,
 	0x35A4,
@@ -313,12 +305,10 @@ static long mt9d112_set_effect(int mode, int effect)
 
 	switch (mode) {
 	case SENSOR_PREVIEW_MODE:
-		/* Context A Special Effects */
 		reg_addr = 0x2799;
 		break;
 
 	case SENSOR_SNAPSHOT_MODE:
-		/* Context B Special Effects */
 		reg_addr = 0x279B;
 		break;
 
@@ -415,7 +405,6 @@ static long mt9d112_set_effect(int mode, int effect)
 	}
 	}
 	mt9d112_effect = effect;
-	/* Refresh Sequencer */
 	rc = mt9d112_i2c_write(mt9d112_client->addr,
 		0x338C, 0xA103, WORD_LEN);
 	if (rc < 0)
@@ -494,7 +483,6 @@ static long mt9d112_set_sensor_mode(int mode)
 		break;
 
 	case SENSOR_SNAPSHOT_MODE:
-		/* Switch to lower fps for Snapshot */
 		rc =
 			mt9d112_i2c_write(mt9d112_client->addr,
 				0x341C, 0x0120, WORD_LEN);
@@ -507,14 +495,14 @@ static long mt9d112_set_sensor_mode(int mode)
 		if (rc < 0)
 			return rc;
 
-		msleep(40);/*waiting for the delay of one frame*/
+		msleep(40);
 		rc =
 			mt9d112_i2c_write(mt9d112_client->addr,
 				0x3390, 0x0002, WORD_LEN);
 		if (rc < 0)
 			return rc;
 
-		msleep(80);/*waiting for the delay of two frames*/
+		msleep(80);
 
 		rc =
 			mt9d112_i2c_write(mt9d112_client->addr,
@@ -522,7 +510,7 @@ static long mt9d112_set_sensor_mode(int mode)
 		if (rc < 0)
 			return rc;
 
-		msleep(40);/*waiting for the delay of one frame*/
+		msleep(40);
 		rc =
 			mt9d112_i2c_write(mt9d112_client->addr,
 				0x3390, 0x0002, WORD_LEN);
@@ -531,7 +519,6 @@ static long mt9d112_set_sensor_mode(int mode)
 		break;
 
 	case SENSOR_RAW_SNAPSHOT_MODE:
-		/* Setting the effect to CAMERA_EFFECT_OFF */
 		rc =
 			mt9d112_i2c_write(mt9d112_client->addr,
 				0x338C, 0x279B, WORD_LEN);
@@ -544,7 +531,6 @@ static long mt9d112_set_sensor_mode(int mode)
 		if (rc < 0)
 			return rc;
 
-		/* Switch to lower fps for Snapshot */
 		rc =
 			mt9d112_i2c_write(mt9d112_client->addr,
 				0x341C, 0x0120, WORD_LEN);
@@ -599,14 +585,11 @@ static int mt9d112_sensor_init_probe(const struct msm_camera_sensor_info *data)
 
 	mdelay(5);
 
-	/* Micron suggested Power up block Start:
-	* Put MCU into Reset - Stop MCU */
 	rc = mt9d112_i2c_write(mt9d112_client->addr,
 		REG_MT9D112_MCU_BOOT, 0x0501, WORD_LEN);
 	if (rc < 0)
 		goto init_probe_fail;
 
-	/* Pull MCU from Reset - Start MCU */
 	rc = mt9d112_i2c_write(mt9d112_client->addr,
 		REG_MT9D112_MCU_BOOT, 0x0500, WORD_LEN);
 	if (rc < 0)
@@ -614,7 +597,6 @@ static int mt9d112_sensor_init_probe(const struct msm_camera_sensor_info *data)
 
 	mdelay(5);
 
-	/* Micron Suggested - Power up block */
 	rc = mt9d112_i2c_write(mt9d112_client->addr,
 		REG_MT9D112_SENSOR_RESET, 0x0ACC, WORD_LEN);
 	if (rc < 0)
@@ -625,7 +607,6 @@ static int mt9d112_sensor_init_probe(const struct msm_camera_sensor_info *data)
 	if (rc < 0)
 		goto init_probe_fail;
 
-	/* FUSED_DEFECT_CORRECTION */
 	rc = mt9d112_i2c_write(mt9d112_client->addr,
 		0x33F4, 0x031D, WORD_LEN);
 	if (rc < 0)
@@ -633,8 +614,6 @@ static int mt9d112_sensor_init_probe(const struct msm_camera_sensor_info *data)
 
 	mdelay(5);
 
-	/* Micron suggested Power up block End */
-	/* Read the Model ID of the sensor */
 	rc = mt9d112_i2c_read(mt9d112_client->addr,
 		REG_MT9D112_MODEL_ID, &model_id, WORD_LEN);
 	if (rc < 0)
@@ -642,7 +621,6 @@ static int mt9d112_sensor_init_probe(const struct msm_camera_sensor_info *data)
 
 	CDBG("mt9d112 model_id = 0x%x\n", model_id);
 
-	/* Check if it matches it with the value in Datasheet */
 	if (model_id != MT9D112_MODEL_ID) {
 		rc = -EINVAL;
 		goto init_probe_fail;
@@ -672,7 +650,6 @@ int mt9d112_sensor_init(const struct msm_camera_sensor_info *data)
 	if (data)
 		mt9d112_ctrl->sensordata = data;
 
-	/* Input MCLK = 24MHz */
 	msm_camio_clk_rate_set(24000000);
 	mdelay(5);
 
@@ -694,7 +671,6 @@ init_fail:
 
 static int mt9d112_init_client(struct i2c_client *client)
 {
-	/* Initialize the MSM_CAMI2C Chip */
 	init_waitqueue_head(&mt9d112_wait_queue);
 	return 0;
 }
@@ -709,7 +685,6 @@ int mt9d112_sensor_config(void __user *argp)
 			sizeof(struct sensor_cfg_data)))
 		return -EFAULT;
 
-	/* down(&mt9d112_sem); */
 
 	CDBG("mt9d112_ioctl, cfgtype = %d, mode = %d\n",
 		cfg_data.cfgtype, cfg_data.mode);
@@ -731,7 +706,6 @@ int mt9d112_sensor_config(void __user *argp)
 			break;
 		}
 
-	/* up(&mt9d112_sem); */
 
 	return rc;
 }
@@ -740,10 +714,8 @@ int mt9d112_sensor_release(void)
 {
 	int rc = 0;
 
-	/* down(&mt9d112_sem); */
 
 	kfree(mt9d112_ctrl);
-	/* up(&mt9d112_sem); */
 
 	return rc;
 }

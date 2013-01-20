@@ -32,6 +32,7 @@
 #include <linux/pm_qos_params.h>
 #include <mach/gpio.h>
 
+#define DEBUG 0
 
 enum {
 	I2C_WRITE_DATA          = 0x00,
@@ -84,6 +85,7 @@ struct msm_i2c_dev {
 	int                          rd_acked;
 	int                          one_bit_t;
 	remote_mutex_t               r_lock;
+	remote_spinlock_t            s_lock;
 	int                          suspended;
 	struct mutex                 mlock;
 	struct msm_i2c_platform_data *pdata;
@@ -111,7 +113,7 @@ msm_i2c_pwr_timer(unsigned long data)
 		msm_i2c_pwr_mgmt(dev, 0);
 }
 
-#ifdef DEBUG
+#if DEBUG
 static void
 dump_status(uint32_t status)
 {
@@ -145,7 +147,7 @@ msm_i2c_interrupt(int irq, void *devid)
 	uint32_t status = readl(dev->base + I2C_STATUS);
 	int err = 0;
 
-#ifdef DEBUG
+#if DEBUG
 	dump_status(status);
 #endif
 
@@ -358,6 +360,32 @@ msm_i2c_recover_bus_busy(struct msm_i2c_dev *dev, struct i2c_adapter *adap)
 	return -EBUSY;
 }
 
+static void
+msm_i2c_rspin_lock(struct msm_i2c_dev *dev)
+{
+	int gotlock = 0;
+	unsigned long flags;
+	uint32_t *smem_ptr = (uint32_t *)dev->pdata->rmutex;
+	do {
+		remote_spin_lock_irqsave(&dev->s_lock, flags);
+		if (*smem_ptr == 0) {
+			*smem_ptr = 1;
+			gotlock = 1;
+		}
+		remote_spin_unlock_irqrestore(&dev->s_lock, flags);
+	} while (!gotlock);
+}
+
+static void
+msm_i2c_rspin_unlock(struct msm_i2c_dev *dev)
+{
+	unsigned long flags;
+	uint32_t *smem_ptr = (uint32_t *)dev->pdata->rmutex;
+	remote_spin_lock_irqsave(&dev->s_lock, flags);
+	*smem_ptr = 0;
+	remote_spin_unlock_irqrestore(&dev->s_lock, flags);
+}
+
 static int
 msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 {
@@ -386,7 +414,15 @@ msm_i2c_xfer(struct i2c_adapter *adap, struct i2c_msg msgs[], int num)
 	pm_qos_update_requirement(PM_QOS_CPU_DMA_LATENCY, "msm_i2c",
 					dev->pdata->pm_lat);
 	if (dev->pdata->rmutex) {
-		remote_mutex_lock(&dev->r_lock);
+		/*
+		 * Older modem side uses remote_mutex lock only to update
+		 * shared variable, and newer modem side uses remote mutex
+		 * to protect the whole transaction
+		 */
+		if (dev->pdata->rsl_id[0] == 'S')
+			msm_i2c_rspin_lock(dev);
+		else
+			remote_mutex_lock(&dev->r_lock);
 		/* If other processor did some transactions, we may have
 		 * interrupt pending. Clear it
 		 */
@@ -535,8 +571,12 @@ wait_for_int:
 	dev->cnt = 0;
 	spin_unlock_irqrestore(&dev->lock, flags);
 	disable_irq(dev->irq);
-	if (dev->pdata->rmutex)
-		remote_mutex_unlock(&dev->r_lock);
+	if (dev->pdata->rmutex) {
+		if (dev->pdata->rsl_id[0] == 'S')
+			msm_i2c_rspin_unlock(dev);
+		else
+			remote_mutex_unlock(&dev->r_lock);
+	}
 	pm_qos_update_requirement(PM_QOS_CPU_DMA_LATENCY, "msm_i2c",
 					PM_QOS_DEFAULT_VALUE);
 	mod_timer(&dev->pwr_timer, (jiffies + 3*HZ));
@@ -601,11 +641,32 @@ msm_i2c_probe(struct platform_device *pdev)
 		ret = -ENOSYS;
 		goto err_clk_get_failed;
 	}
+	/*ZTE_I2C_ZHYF_001, zhuyufei 2009-10-22*/
+/*
 	if (!pdata->msm_i2c_config_gpio) {
+	
 		dev_err(&pdev->dev, "config_gpio function not initialized\n");
 		ret = -ENOSYS;
 		goto err_clk_get_failed;
 	}
+*/
+#ifdef CONFIG_ZTE_PLATFORM
+       //  if(machine_is_mooncake())
+       {
+        	printk(KERN_INFO" Warning: msm on-chip aux i2c bus disabled on Board mooncake!\n");
+		/*NULL*/
+       }
+#else
+	{
+		if (!pdata->msm_i2c_config_gpio) {
+		
+			dev_err(&pdev->dev, "config_gpio function not initialized\n");
+			ret = -ENOSYS;
+			goto err_clk_get_failed;
+		}
+	}
+#endif
+	/*end ,ZTE_I2C_ZHYF_001, zhuyufei 2009-10-22*/
 	/* We support frequencies upto FAST Mode(400KHz) */
 	if (pdata->clk_freq <= 0 || pdata->clk_freq > 400000) {
 		dev_err(&pdev->dev, "clock frequency not supported\n");
@@ -635,7 +696,12 @@ msm_i2c_probe(struct platform_device *pdev)
 
 	clk_enable(clk);
 
-	if (pdata->rmutex) {
+	if (pdata->rmutex && pdata->rsl_id[0] == 'S') {
+		remote_spinlock_id_t rmid;
+		rmid = pdata->rsl_id;
+		if (remote_spin_lock_init(&dev->s_lock, rmid) != 0)
+			pdata->rmutex = 0;
+	} else if (pdata->rmutex) {
 		struct remote_mutex_id rmid;
 		rmid.r_spinlock_id = pdata->rsl_id;
 		rmid.delay_us = 10000000/pdata->clk_freq;
@@ -666,6 +732,8 @@ msm_i2c_probe(struct platform_device *pdev)
 		goto err_i2c_add_adapter_failed;
 	}
 
+       /*ZTE_I2C_ZHYF_001, zhuyufei 2009-10-22*/
+/*
 	i2c_set_adapdata(&dev->adap_aux, dev);
 	dev->adap_aux.algo = &msm_i2c_algo;
 	strlcpy(dev->adap_aux.name,
@@ -679,6 +747,30 @@ msm_i2c_probe(struct platform_device *pdev)
 		i2c_del_adapter(&dev->adap_pri);
 		goto err_i2c_add_adapter_failed;
 	}
+*/	
+#ifdef CONFIG_ZTE_PLATFORM
+      //  if(machine_is_mooncake())
+       {
+		/*NULL*/
+       }
+#else
+	{
+		i2c_set_adapdata(&dev->adap_aux, dev);
+		dev->adap_aux.algo = &msm_i2c_algo;
+		strlcpy(dev->adap_aux.name,
+			"MSM I2C adapter-AUX",
+			sizeof(dev->adap_aux.name));
+
+		dev->adap_aux.nr = pdev->id + 1;
+		ret = i2c_add_numbered_adapter(&dev->adap_aux);
+		if (ret) {
+			dev_err(&pdev->dev, "auxiliary i2c_add_adapter failed\n");
+			i2c_del_adapter(&dev->adap_pri);
+			goto err_i2c_add_adapter_failed;
+		}
+	}
+#endif
+	/*end ,ZTE_I2C_ZHYF_001, zhuyufei 2009-10-22*/
 	ret = request_irq(dev->irq, msm_i2c_interrupt,
 			IRQF_TRIGGER_RISING, pdev->name, dev);
 	if (ret) {
@@ -693,7 +785,19 @@ msm_i2c_probe(struct platform_device *pdev)
 	dev->clk_state = 0;
 	/* Config GPIOs for primary and secondary lines */
 	pdata->msm_i2c_config_gpio(dev->adap_pri.nr, 1);
+/*
 	pdata->msm_i2c_config_gpio(dev->adap_aux.nr, 1);
+*/
+#ifdef CONFIG_ZTE_PLATFORM
+    //   if(machine_is_mooncake())
+       {
+		/*NULL*/
+       }
+#else
+	{
+		pdata->msm_i2c_config_gpio(dev->adap_aux.nr, 1);
+	}
+#endif
 	clk_disable(dev->clk);
 	setup_timer(&dev->pwr_timer, msm_i2c_pwr_timer, (unsigned long) dev);
 

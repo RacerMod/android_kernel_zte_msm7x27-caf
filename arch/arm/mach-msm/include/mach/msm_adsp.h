@@ -13,6 +13,11 @@
  * GNU General Public License for more details.
  *
  */
+/*===========================================================================
+when       who       what, where, why                                                comment tag
+--------   ----    -------------------------------------    ----------------------------------
+2010-2-2 chenjun  fix CRDB00443050                                              ZTE_CJ_CRDB00443050
+===========================================================================*/
 
 #ifndef __ASM__ARCH_MSM_ADSP_H
 #define __ASM__ARCH_MSM_ADSP_H
@@ -41,6 +46,10 @@ int msm_adsp_enable(struct msm_adsp_module *module);
 int msm_adsp_disable(struct msm_adsp_module *module);
 int adsp_set_clkrate(struct msm_adsp_module *module, unsigned long clk_rate);
 int msm_adsp_disable_event_rsp(struct msm_adsp_module *module);
+/* ZTE_CJ_CRDB00443050, chenjun, 2010-2-2, start */
+void resume_prevent_suspend(void);
+void suspend_allow_suspend(void);
+/* ZTE_CJ_CRDB00443050, chenjun, 2010-2-2, end */
 
 /* Write is safe to call from interrupt context.
  */

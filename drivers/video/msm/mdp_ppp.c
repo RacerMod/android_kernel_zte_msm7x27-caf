@@ -13,6 +13,14 @@
  * GNU General Public License for more details.
  */
 
+/* ========================================================================================
+when         who        what, where, why                                  comment tag
+--------     ----       -----------------------------                --------------------------
+2010-11-19   luya		CRDB00595685,merge the patch:Enable BG Tile fetching		ZTE_LCD_LUYA_20110222_001  
+						HW workaround only for MDP2.2
+==========================================================================================*/
+
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/sched.h>
@@ -60,13 +68,14 @@ static uint32_t bytes_per_pixel[] = {
 extern uint32 mdp_plv[];
 extern struct semaphore mdp_ppp_mutex;
 
-uint32_t mdp_get_bytes_per_pixel(uint32_t format)
+int mdp_get_bytes_per_pixel(uint32_t format)
 {
-	uint32_t bpp = 0;
+	int bpp = -EINVAL;
 	if (format < ARRAY_SIZE(bytes_per_pixel))
 		bpp = bytes_per_pixel[format];
 
-	BUG_ON(!bpp);
+	if (bpp <= 0)
+		printk(KERN_ERR "%s incorrect format %d\n", __func__, format);
 	return bpp;
 }
 
@@ -1372,11 +1381,14 @@ int mdp_ppp_blit(struct fb_info *info, struct mdp_blit_req *req)
 	if (req->flags & MDP_DEINTERLACE) {
 #ifdef CONFIG_FB_MSM_MDP31
 		if ((req->src.format != MDP_Y_CBCR_H2V2) &&
-			(req->src.format != MDP_Y_CRCB_H2V2))
+			(req->src.format != MDP_Y_CRCB_H2V2)) {
 #endif
 			put_img(p_src_file);
 			put_img(p_dst_file);
 			return -EINVAL;
+#ifdef CONFIG_FB_MSM_MDP31
+		}
+#endif
 	}
 
 	/* scale check */
@@ -1428,8 +1440,8 @@ int mdp_ppp_blit(struct fb_info *info, struct mdp_blit_req *req)
 	down(&mdp_ppp_mutex);
 	/* MDP cmd block enable */
 	mdp_pipe_ctrl(MDP_CMD_BLOCK, MDP_BLOCK_POWER_ON, FALSE);
-
-#ifdef CONFIG_FB_MSM_MDP31
+//merge the patch:Enable BG Tile fetching HW workaround only for MDP2.2,ZTE_LCD_LUYA_20110222_001,CRDB00595685
+#ifndef CONFIG_FB_MSM_MDP22
 	mdp_start_ppp(mfd, &iBuf, req, p_src_file, p_dst_file);
 #else
 	/* bg tile fetching HW workaround */

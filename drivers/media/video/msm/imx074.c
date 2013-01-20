@@ -25,7 +25,6 @@
 #include <mach/camera.h>
 #include "imx074.h"
 
-/*SENSOR REGISTER DEFINES*/
 
 #define REG_GROUPED_PARAMETER_HOLD			0x0104
 #define GROUPED_PARAMETER_HOLD_OFF			0x00
@@ -33,13 +32,10 @@
 #define REG_MODE_SELECT					0x100
 #define MODE_SELECT_STANDBY_MODE			0x00
 #define MODE_SELECT_STREAM				0x01
-/* Integration Time */
 #define REG_COARSE_INTEGRATION_TIME_HI			0x0202
 #define REG_COARSE_INTEGRATION_TIME_LO			0x0203
-/* Gain */
 #define REG_ANALOGUE_GAIN_CODE_GLOBAL_HI		0x0204
 #define REG_ANALOGUE_GAIN_CODE_GLOBAL_LO		0x0205
-/* PLL registers */
 #define REG_PLL_MULTIPLIER				0x0307
 #define REG_PRE_PLL_CLK_DIV				0x0305
 #define REG_PLSTATIM					0x302b
@@ -79,7 +75,6 @@
 #define REG_330F					0x330F
 #define REG_3381					0x3381
 
-/* mode setting */
 #define REG_FRAME_LENGTH_LINES_HI			0x0340
 #define REG_FRAME_LENGTH_LINES_LO			0x0341
 #define REG_YADDR_START					0x0347
@@ -99,29 +94,22 @@
 #define REG_SHUTTER					0x3086
 #define REG_HADDAVE					0x30e8
 #define REG_LANESEL					0x3301
-/* Test Pattern */
 #define REG_TEST_PATTERN_MODE				0x0601
 
 #define REG_LINE_LENGTH_PCK_HI				0x0342
 #define REG_LINE_LENGTH_PCK_LO				0x0343
-/*..... TYPE DECLARATIONS.....*/
 #define	IMX074_OFFSET					3
 #define	IMX074_DEFAULT_MASTER_CLK_RATE			24000000
-/* Full	Size */
 #define	IMX074_FULL_SIZE_WIDTH				4208
 #define	IMX074_FULL_SIZE_HEIGHT				3120
 #define	IMX074_FULL_SIZE_DUMMY_PIXELS			0
 #define	IMX074_FULL_SIZE_DUMMY_LINES			0
-/* Quarter Size	*/
 #define	IMX074_QTR_SIZE_WIDTH				2104
 #define	IMX074_QTR_SIZE_HEIGHT				1560
 #define	IMX074_QTR_SIZE_DUMMY_PIXELS			0
 #define	IMX074_QTR_SIZE_DUMMY_LINES			0
-/* Blanking as measured	on the scope */
-/* Full	Size */
 #define	IMX074_HRZ_FULL_BLK_PIXELS			264
 #define	IMX074_VER_FULL_BLK_LINES			96
-/* Quarter Size	*/
 #define	IMX074_HRZ_QTR_BLK_PIXELS			2368
 #define	IMX074_VER_QTR_BLK_LINES			48
 #define	Q8						0x100
@@ -255,16 +243,13 @@ static int32_t imx074_i2c_write_w_table(struct imx074_i2c_reg_conf const
 
 static void imx074_get_pict_fps(uint16_t fps, uint16_t *pfps)
 {
-	/* input fps is preview fps in Q8 format */
 	uint16_t preview_frame_length_lines, snapshot_frame_length_lines;
 	uint16_t preview_line_length_pck, snapshot_line_length_pck;
 	uint32_t divider, d1, d2;
-	/* Total frame_length_lines and line_length_pck for preview */
 	preview_frame_length_lines = IMX074_QTR_SIZE_HEIGHT +
 		IMX074_VER_QTR_BLK_LINES;
 	preview_line_length_pck = IMX074_QTR_SIZE_WIDTH +
 		IMX074_HRZ_QTR_BLK_PIXELS;
-	/* Total frame_length_lines and line_length_pck for snapshot */
 	snapshot_frame_length_lines = IMX074_FULL_SIZE_HEIGHT +
 		IMX074_VER_FULL_BLK_LINES;
 	snapshot_line_length_pck = IMX074_FULL_SIZE_WIDTH +
@@ -379,24 +364,19 @@ static int32_t imx074_write_exp_gain(uint16_t gain, uint32_t line)
 		line = (uint32_t) (line * imx074_ctrl->pict_fps_divider /
 					0x00000400);
 	}
-	/* calculate line_length_ratio */
 	if (line > (frame_length_lines - IMX074_OFFSET)) {
 		line_length_ratio = (line * Q8) / (frame_length_lines -
 							IMX074_OFFSET);
 		line = frame_length_lines - IMX074_OFFSET;
 	} else
 		line_length_ratio = 1 * Q8;
-	/* range: 0 to 224 */
 	if (gain > max_legal_gain)
 		gain = max_legal_gain;
-	/* update gain registers */
 	gain_msb = (uint8_t) ((gain & 0xFF00) >> 8);
 	gain_lsb = (uint8_t) (gain & 0x00FF);
-	/* linear AFR horizontal stretch */
 	line_length_pck = (uint16_t) (line_length_pck * line_length_ratio / Q8);
 	line_length_pck_msb = (uint8_t) ((line_length_pck & 0xFF00) >> 8);
 	line_length_pck_lsb = (uint8_t) (line_length_pck & 0x00FF);
-	/* update line count registers */
 	intg_time_msb = (uint8_t) ((line & 0xFF00) >> 8);
 	intg_time_lsb = (uint8_t) (line & 0x00FF);
 	rc = imx074_i2c_write_b_sensor(REG_GROUPED_PARAMETER_HOLD,
@@ -462,7 +442,6 @@ static int32_t imx074_test(enum imx074_test_mode_t mo)
 	if (mo == TEST_OFF)
 		return rc;
 	else {
-		/* Set mo to 2 inorder to enable test pattern*/
 		if (imx074_i2c_write_b_sensor(REG_TEST_PATTERN_MODE,
 			(uint8_t) mo) < 0) {
 			return rc;
@@ -629,10 +608,8 @@ static int32_t imx074_sensor_setting(int update_type, int rt)
 					GROUPED_PARAMETER_HOLD_OFF},
 
 			};
-			/* reset fps_divider */
 			imx074_ctrl->fps = 30 * Q8;
 			imx074_ctrl->fps_divider = 1 * 0x400;
-			/* stop streaming */
 			rc = imx074_i2c_write_b_sensor(REG_MODE_SELECT,
 				MODE_SELECT_STANDBY_MODE);
 			if (rc < 0)
@@ -647,7 +624,6 @@ static int32_t imx074_sensor_setting(int update_type, int rt)
 			if (rc < 0)
 				CDBG("config csi controller failed \n");
 
-			/*imx074_delay_msecs_stdby*/
 			msleep(imx074_delay_msecs_stdby);
 			rc = imx074_i2c_write_w_table(&init_tbl[0],
 				ARRAY_SIZE(init_tbl));
@@ -660,7 +636,6 @@ static int32_t imx074_sensor_setting(int update_type, int rt)
 			rc = imx074_test(imx074_ctrl->set_test);
 			if (rc < 0)
 				return rc;
-			/* Start sensor streaming */
 			rc = imx074_i2c_write_b_sensor(REG_MODE_SELECT,
 				MODE_SELECT_STREAM);
 			if (rc < 0)
@@ -735,7 +710,6 @@ static int32_t imx074_sensor_setting(int update_type, int rt)
 					GROUPED_PARAMETER_HOLD_OFF},
 			};
 
-			/* stop streaming */
 			rc = imx074_i2c_write_b_sensor(REG_MODE_SELECT,
 				MODE_SELECT_STANDBY_MODE);
 			if (rc < 0)
@@ -765,7 +739,6 @@ static int32_t imx074_video_config(int mode)
 
 	int32_t	rc = 0;
 	int	rt;
-	/* change sensor resolution	if needed */
 	if (imx074_ctrl->prev_res == QTR_SIZE) {
 		rt = RES_PREVIEW;
 		imx074_delay_msecs_stdby =
@@ -788,7 +761,6 @@ static int32_t imx074_snapshot_config(int mode)
 {
 	int32_t rc = 0;
 	int rt;
-	/* change sensor resolution if needed */
 	if (imx074_ctrl->curr_res != imx074_ctrl->pict_res) {
 		if (imx074_ctrl->pict_res == QTR_SIZE) {
 			rt = RES_PREVIEW;
@@ -812,7 +784,6 @@ static int32_t imx074_raw_snapshot_config(int mode)
 {
 	int32_t rc = 0;
 	int rt;
-	/* change sensor resolution if needed */
 	if (imx074_ctrl->curr_res != imx074_ctrl->pict_res) {
 		if (imx074_ctrl->pict_res == QTR_SIZE) {
 			rt = RES_PREVIEW;
@@ -881,7 +852,6 @@ static int imx074_probe_init_sensor(const struct msm_camera_sensor_info *data)
 	}
 	msleep(20);
 	CDBG(" imx074_probe_init_sensor is called \n");
-	/* 3. Read sensor Model ID: */
 	rc = imx074_i2c_read(0x0000, &chipidh, 1);
 	if (rc < 0) {
 		CDBG(" Model read failed \n");
@@ -893,7 +863,6 @@ static int imx074_probe_init_sensor(const struct msm_camera_sensor_info *data)
 		goto init_probe_fail;
 	}
 	CDBG("imx074 model_id = 0x%x  0x%x\n", chipidh, chipidl);
-	/* 4. Compare sensor ID to IMX074 ID: */
 	if (chipidh != 0x00 || chipidl != 0x74) {
 		rc = -ENODEV;
 		CDBG("imx074_probe_init_sensor fail chip id doesnot match\n");
@@ -907,7 +876,6 @@ init_probe_done:
 	CDBG(" imx074_probe_init_sensor finishes\n");
 	return rc;
 	}
-/* camsensor_iu060f_imx074_reset */
 int imx074_sensor_open_init(const struct msm_camera_sensor_info *data)
 {
 	int32_t rc = 0;
@@ -931,7 +899,6 @@ int imx074_sensor_open_init(const struct msm_camera_sensor_info *data)
 	if (data)
 		imx074_ctrl->sensordata = data;
 
-	/* enable mclk first */
 	msm_camio_clk_rate_set(24000000);
 	msleep(20);
 
@@ -956,7 +923,6 @@ init_done:
 }
 static int imx074_init_client(struct i2c_client *client)
 {
-	/* Initialize the MSM_CAMI2C Chip */
 	init_waitqueue_head(&imx074_wait_queue);
 	return 0;
 }

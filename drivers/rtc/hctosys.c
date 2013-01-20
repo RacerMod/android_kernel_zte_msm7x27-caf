@@ -21,6 +21,9 @@
  * slow down the sync API. So here we have the truncated value and
  * the best guess is to add 0.5s.
  */
+#ifdef CONFIG_ZTE_FIX_ALARM_SYNC
+extern void fix_sync_alarm(void);
+#endif
 
 int rtc_hctosys(void)
 {
@@ -45,7 +48,9 @@ int rtc_hctosys(void)
 			rtc_tm_to_time(&tm, &tv.tv_sec);
 
 			do_settimeofday(&tv);
-
+		#ifdef CONFIG_ZTE_FIX_ALARM_SYNC
+			fix_sync_alarm();
+		#endif
 			dev_info(rtc->dev.parent,
 				"setting system clock to "
 				"%d-%02d-%02d %02d:%02d:%02d UTC (%u)\n",

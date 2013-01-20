@@ -7,7 +7,8 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or (at
  * your option) any later version.
- */
+ *
+  */
 
 #include <linux/err.h>
 
@@ -242,7 +243,6 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 
 	BUG_ON(!host);
 	WARN_ON(!host->claimed);
-
 	/*
 	 * Inform the card of the voltage
 	 */
@@ -329,7 +329,9 @@ static int mmc_sdio_init_card(struct mmc_host *host, u32 ocr,
 			goto err;
 		}
 		card = oldcard;
+#ifndef CONFIG_ATH_WIFI
 		return 0;
+#endif
 	}
 
 	/*

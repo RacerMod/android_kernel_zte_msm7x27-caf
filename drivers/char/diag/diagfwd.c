@@ -104,9 +104,7 @@ int diag_device_write(void *buf, int proc_num)
 						 " pkt length %d \n",
 				       driver->usb_write_ptr->length);
 				print_hex_dump(KERN_DEBUG, "Written Packet Data"
-					       " to USB: ", 16, 1, DUMP_PREFIX_
-					       ADDRESS, buf, driver->
-					       usb_write_ptr->length, 1);
+					       " to USB: ", 16, 1, DUMP_PREFIX_ADDRESS, buf, driver->usb_write_ptr->length, 1);
 #endif
 			err = diag_write(driver->usb_write_ptr);
 		} else if (proc_num == QDSP_DATA) {
@@ -124,8 +122,7 @@ int diag_device_write(void *buf, int proc_num)
 #ifdef DIAG_DEBUG
 					printk(KERN_INFO "\n ENQUEUE buf ptr"
 						   " and length is %x , %d\n",
-						   (unsigned int)(driver->buf_
-				tbl[i].buf), driver->buf_tbl[i].length);
+						   (unsigned int)(driver->buf_tbl[i].buf), driver->buf_tbl[i].length);
 #endif
 					break;
 				}
@@ -679,7 +676,7 @@ void diagfwd_init(void)
 	if (driver->buf_tbl == NULL)
 		goto err;
 	if (driver->data_ready == NULL &&
-	     (driver->data_ready = kzalloc(driver->num_clients,
+	    (driver->data_ready = kzalloc(driver->num_clients * sizeof(driver->data_ready[0]),
 					    GFP_KERNEL)) == NULL)
 		goto err;
 	if (driver->table == NULL &&

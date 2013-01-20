@@ -645,6 +645,15 @@ static DECLARE_WORK(dbs_refresh_work, dbs_refresh_callback);
 static void dbs_input_event(struct input_handle *handle, unsigned int type,
 		unsigned int code, int value)
 {
+#ifdef CONFIG_ZTE_PLATFORM
+	if (!strcmp(handle->dev->name, "compass"))
+		return;
+	
+#ifdef CONFIG_MACH_TURIES	//LHX_PM_20110617_01 no ondemand for P725A  with full keyboard
+	if (!strcmp(handle->dev->name, "turies_keypad"))
+	  return;
+#endif
+#endif
 	schedule_work(&dbs_refresh_work);
 }
 

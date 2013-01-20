@@ -16,6 +16,11 @@
  *
  */
 
+/*===========================================================================
+when       who       what, where, why                             comment tag
+--------   ----    ---------------------------     -------------------------------------------
+===========================================================================*/
+
 #include <linux/module.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -27,6 +32,8 @@
 
 #include "audmgr.h"
 #include <mach/debug_mm.h>
+
+#include <linux/delay.h>
 
 #define STATE_CLOSED    0
 #define STATE_DISABLED  1
@@ -270,9 +277,11 @@ int audmgr_open(struct audmgr *am)
 			amg->ept = NULL;
 			goto done;
 		}
+
+	msleep(23);
+
 	}
 
-	/* Initialize session parameters */
 	init_waitqueue_head(&am->wait);
 	am->state = STATE_DISABLED;
 	rc = 0;

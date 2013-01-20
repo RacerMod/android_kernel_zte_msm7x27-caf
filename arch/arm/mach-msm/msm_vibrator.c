@@ -13,6 +13,12 @@
  * GNU General Public License for more details.
  *
  */
+/*histstory:
+ when       who     what, where, why                                            comment tag
+ --------   ----    ---------------------------------------------------    ----------------------------------
+ 2009-10-23    hp    mermge vibrator support                                       ZTE_VIBRATOR_HP_01
+
+*/
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/err.h>
@@ -22,19 +28,33 @@
 
 #include <mach/msm_rpcrouter.h>
 
-#define PM_LIBPROG      0x30000061
-#if (CONFIG_MSM_AMSS_VERSION == 6220) || (CONFIG_MSM_AMSS_VERSION == 6225)
-#define PM_LIBVERS      0xfb837d0b
-#else
+#define PM_LIBPROG	  0x30000061
+//ZTE_VIBRATOR_HP_01 2009-10-23 
+//change rpc ver number
+#if 1   //for ZTE Raise 7x27
 #define PM_LIBVERS      0x10001
+//ZTE_VIBRATOR_HP_01 end 
+#else
+#if (CONFIG_MSM_AMSS_VERSION == 6220) || (CONFIG_MSM_AMSS_VERSION == 6225)
+#define PM_LIBVERS	  0xfb837d0b
+#else
+#define PM_LIBVERS	  MSM_RPC_VERS(1,1)
+#endif
 #endif
 
-#define HTC_PROCEDURE_SET_VIB_ON_OFF	21
+//ZTE_VIBRATOR_HP_01 2009-10-23 
+//change rpc proc id 
+#define HTC_PROCEDURE_SET_VIB_ON_OFF	22
+//ZTE_VIBRATOR_HP_01 end 
 #define PMIC_VIBRATOR_LEVEL	(3000)
 
-static struct work_struct work_vibrator_on;
-static struct work_struct work_vibrator_off;
+//add by stone 2010_0301
+//#define STONE_DEBUG
+
+static struct work_struct vibrator_work;
 static struct hrtimer vibe_timer;
+static spinlock_t vibe_lock;
+static int vibe_state;
 
 static void set_pmic_vibrator(int on)
 {
@@ -43,6 +63,10 @@ static void set_pmic_vibrator(int on)
 		struct rpc_request_hdr hdr;
 		uint32_t data;
 	} req;
+
+#ifdef STONE_DEBUG
+        printk("\nstone vib01:0x%x,0x%x\n",on,vib_endpoint); 
+#endif
 
 	if (!vib_endpoint) {
 		vib_endpoint = msm_rpc_connect(PM_LIBPROG, PM_LIBVERS, 0);
@@ -53,7 +77,6 @@ static void set_pmic_vibrator(int on)
 		}
 	}
 
-
 	if (on)
 		req.data = cpu_to_be32(PMIC_VIBRATOR_LEVEL);
 	else
@@ -63,41 +86,37 @@ static void set_pmic_vibrator(int on)
 		sizeof(req), 5 * HZ);
 }
 
-static void pmic_vibrator_on(struct work_struct *work)
+static void update_vibrator(struct work_struct *work)
 {
-	set_pmic_vibrator(1);
-}
-
-static void pmic_vibrator_off(struct work_struct *work)
-{
-	set_pmic_vibrator(0);
-}
-
-static void timed_vibrator_on(struct timed_output_dev *sdev)
-{
-	schedule_work(&work_vibrator_on);
-}
-
-static void timed_vibrator_off(struct timed_output_dev *sdev)
-{
-	schedule_work(&work_vibrator_off);
+	set_pmic_vibrator(vibe_state);
 }
 
 static void vibrator_enable(struct timed_output_dev *dev, int value)
 {
+	unsigned long	flags;
+
+	spin_lock_irqsave(&vibe_lock, flags);
 	hrtimer_cancel(&vibe_timer);
 
+#ifdef STONE_DEBUG
+         printk("\nstone vib02:0x%x,0x%x\n",dev,value); 
+#endif
+
 	if (value == 0)
-		timed_vibrator_off(dev);
+		vibe_state = 0;
 	else {
-		value = (value > 15000 ? 15000 : value);
-
-		timed_vibrator_on(dev);
-
+		//ZTE_VIBRATOR_HP_01 2009-10-23
+		//change max duration time to 1000
+		value = (value > 1000 ? 1000 : value);
+		//ZTE_VIBRATOR_HP_01 end
+		vibe_state = 1;
 		hrtimer_start(&vibe_timer,
-			      ktime_set(value / 1000, (value % 1000) * 1000000),
-			      HRTIMER_MODE_REL);
+			ktime_set(value / 1000, (value % 1000) * 1000000),
+			HRTIMER_MODE_REL);
 	}
+	spin_unlock_irqrestore(&vibe_lock, flags);
+
+	schedule_work(&vibrator_work);
 }
 
 static int vibrator_get_time(struct timed_output_dev *dev)
@@ -111,7 +130,8 @@ static int vibrator_get_time(struct timed_output_dev *dev)
 
 static enum hrtimer_restart vibrator_timer_func(struct hrtimer *timer)
 {
-	timed_vibrator_off(NULL);
+	vibe_state = 0;
+	schedule_work(&vibrator_work);
 	return HRTIMER_NORESTART;
 }
 
@@ -123,9 +143,15 @@ static struct timed_output_dev pmic_vibrator = {
 
 void __init msm_init_pmic_vibrator(void)
 {
-	INIT_WORK(&work_vibrator_on, pmic_vibrator_on);
-	INIT_WORK(&work_vibrator_off, pmic_vibrator_off);
+	INIT_WORK(&vibrator_work, update_vibrator);
+	
+//#ifdef STONE_DEBUG
+         printk("\nstone_20100302 vib00:**************************************\n"); 
+//#endif
 
+
+	spin_lock_init(&vibe_lock);
+	vibe_state = 0;
 	hrtimer_init(&vibe_timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	vibe_timer.function = vibrator_timer_func;
 

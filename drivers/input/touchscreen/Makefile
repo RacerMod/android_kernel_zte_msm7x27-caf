@@ -1,3 +1,10 @@
+
+#========================================================================================
+#when         who        what, where, why                         comment tag
+#--------     ----       -------------------------------------    --------------------------
+#2010-07-03   wly        update firmware                          ZTE_WLY_CRDB00517999
+#2010-03-29   wly        add cypress driver                       ZTE_TOUCH_WLY_001
+#========================================================================================
 #
 # Makefile for the touchscreen drivers.
 #
@@ -48,3 +55,15 @@ obj-$(CONFIG_TOUCHSCREEN_W90X900)	+= w90p910_ts.o
 obj-$(CONFIG_TOUCHSCREEN_PCAP)		+= pcap_ts.o
 obj-$(CONFIG_TOUCHSCREEN_MSM_LEGACY)		+= msm_touch.o
 obj-$(CONFIG_TOUCHSCREEN_CY8C_TS)	+= cy8c_ts.o
+#ZTE_TOUCH_WLY_001,@2010-03-29,begin
+#ZTE_WLY_CRDB00517999, begin
+obj-$(CONFIG_DOWNLOAD_FIRMWARE)		+= issp-firmware.o
+issp-firmware-objs := issp_driver_routines.o issp_routines.o download_main.o
+#ZTE_WLY_CRDB00517999, end
+obj-$(CONFIG_TOUCHSCREEN_CYPRESS_I2C_RMI)	+= cypress_i2c_rmi.o
+#ZTE_TOUCH_WLY_001,@2010-03-29,end
+obj-$(CONFIG_TOUCHSCREEN_MXT224)       += mXT224_atmel.o atmel_config.o
+#ZTE_TS_ZFJ_20110107, begin
+obj-$(CONFIG_TOUCHSCREEN_FOCALTECH)	+= ft5x0x_ts.o
+#ZTE_TS_ZFJ_20110107, end
+obj-$(CONFIG_MINI_RACER)	+= msm_ts_racer.o

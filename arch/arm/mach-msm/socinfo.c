@@ -300,6 +300,55 @@ socinfo_show_platform_type(struct sys_device *dev,
 	return snprintf(buf, PAGE_SIZE, "%-.32s\n", hw_platform[hw_type]);
 }
 
+/*ZTE_FTM_ZHYF_001*/
+#ifdef CONFIG_ZTE_PLATFORM
+#ifdef CONFIG_ZTE_FTM_FLAG_SUPPORT
+static int g_zte_ftm_flag;
+void zte_ftm_set_value(int val)
+{
+	g_zte_ftm_flag = val;
+}
+/* ZTE_FTM_MODE_WLY_001, @2009-12-11, START*/
+int zte_get_ftm_flag(void)
+{
+   return g_zte_ftm_flag;
+}
+/* ZTE_FTM_MODE_WLY_001, @2009-12-11, END*/
+static ssize_t
+socinfo_show_zte_ftm(struct sys_device *dev,
+			 struct sysdev_attribute *attr,
+			 char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%u\n", g_zte_ftm_flag);
+}
+
+static struct sysdev_attribute socinfo_zte_ftm_files[] = {
+	_SYSDEV_ATTR(zte_ftm_flag, 0444, socinfo_show_zte_ftm, NULL),
+};
+#endif
+
+static int g_zte_sysfs_board_id_type;
+
+void sync_sysfs_board_id(int flag)
+{
+	g_zte_sysfs_board_id_type = flag;
+}
+
+static ssize_t
+socinfo_show_zte_board_id_type(struct sys_device *dev,
+			 struct sysdev_attribute *attr,
+			 char *buf)
+{
+	return snprintf(buf, PAGE_SIZE, "%u\n",g_zte_sysfs_board_id_type);
+}
+
+static struct sysdev_attribute socinfo_zte_board_id_files[] = {
+	_SYSDEV_ATTR(zte_board_id_type, 0444, socinfo_show_zte_board_id_type, NULL),
+};
+
+#endif
+/*end, ZTE_FTM_ZHYF_001*/
+
 static ssize_t
 socinfo_show_platform_version(struct sys_device *dev,
 			 struct sysdev_attribute *attr,
@@ -379,6 +428,18 @@ static void __init socinfo_init_sysdev(void)
 		       __func__, err);
 		return;
 	}
+	/*ZTE_FTM_ZHYF_001*/
+#ifdef CONFIG_ZTE_PLATFORM
+#ifdef CONFIG_ZTE_FTM_FLAG_SUPPORT
+	socinfo_create_files(&soc_sys_device, socinfo_zte_ftm_files,
+				ARRAY_SIZE(socinfo_zte_ftm_files));
+#endif
+	
+	socinfo_create_files(&soc_sys_device, socinfo_zte_board_id_files,
+				ARRAY_SIZE(socinfo_zte_board_id_files));
+#endif
+	/*end, ZTE_FTM_ZHYF_001*/
+	
 	socinfo_create_files(&soc_sys_device, socinfo_v1_files,
 				ARRAY_SIZE(socinfo_v1_files));
 	if (socinfo->v1.format < 2)

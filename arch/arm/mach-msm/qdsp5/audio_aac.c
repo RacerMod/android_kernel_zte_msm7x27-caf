@@ -16,6 +16,10 @@
  * GNU General Public License for more details.
  *
  */
+/*===========================================================================
+when       who       what, where, why                                                comment tag
+--------   ----    -------------------------------------    ----------------------------------
+===========================================================================*/
 
 #include <linux/module.h>
 #include <linux/fs.h>
@@ -192,6 +196,7 @@ static int audio_enable(struct audio *audio)
 	if (audio->enabled)
 		return 0;
 
+	audio->dec_state = MSM_AUD_DECODER_STATE_NONE;
 	audio->out_tail = 0;
 	audio->out_needed = 0;
 
@@ -912,7 +917,6 @@ static long audio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 	switch (cmd) {
 	case AUDIO_START:
 		MM_DBG("AUDIO_START\n");
-		audio->dec_state = MSM_AUD_DECODER_STATE_NONE;
 		rc = audio_enable(audio);
 		if (!rc) {
 			rc = wait_event_interruptible_timeout(audio->wait,
@@ -1480,6 +1484,7 @@ static void audaac_suspend(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audaac_post_event(ctl->audio, AUDIO_EVENT_SUSPEND, payload);
+	suspend_allow_suspend();
 }
 
 static void audaac_resume(struct early_suspend *h)
@@ -1490,6 +1495,7 @@ static void audaac_resume(struct early_suspend *h)
 
 	MM_DBG("\n"); /* Macro prints the file name and function */
 	audaac_post_event(ctl->audio, AUDIO_EVENT_RESUME, payload);
+	resume_prevent_suspend();
 }
 #endif
 

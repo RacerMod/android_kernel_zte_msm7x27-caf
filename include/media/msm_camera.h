@@ -114,6 +114,9 @@
 #define MSM_CAM_IOCTL_AF_CTRL_DONE \
 	_IOW(MSM_CAM_IOCTL_MAGIC, 26, struct msm_ctrl_cmt_t *)
 
+#define MSM_CAM_IOCTL_FLASH_LED_ON_OFF_CFG \
+	_IOW(MSM_CAM_IOCTL_MAGIC, 27, uint32_t *)
+
 #define MAX_SENSOR_NUM  3
 #define MAX_SENSOR_NAME 32
 
@@ -362,58 +365,148 @@ struct msm_snapshot_pp_status {
 	void *status;
 };
 
-#define CFG_SET_MODE			0
-#define CFG_SET_EFFECT			1
-#define CFG_START			2
-#define CFG_PWR_UP			3
-#define CFG_PWR_DOWN			4
-#define CFG_WRITE_EXPOSURE_GAIN		5
-#define CFG_SET_DEFAULT_FOCUS		6
-#define CFG_MOVE_FOCUS			7
-#define CFG_REGISTER_TO_REAL_GAIN	8
-#define CFG_REAL_TO_REGISTER_GAIN	9
-#define CFG_SET_FPS			10
-#define CFG_SET_PICT_FPS		11
-#define CFG_SET_BRIGHTNESS		12
-#define CFG_SET_CONTRAST		13
-#define CFG_SET_ZOOM			14
-#define CFG_SET_EXPOSURE_MODE		15
-#define CFG_SET_WB			16
-#define CFG_SET_ANTIBANDING		17
-#define CFG_SET_EXP_GAIN		18
-#define CFG_SET_PICT_EXP_GAIN		19
-#define CFG_SET_LENS_SHADING		20
-#define CFG_GET_PICT_FPS		21
-#define CFG_GET_PREV_L_PF		22
-#define CFG_GET_PREV_P_PL		23
-#define CFG_GET_PICT_L_PF		24
-#define CFG_GET_PICT_P_PL		25
-#define CFG_GET_AF_MAX_STEPS		26
-#define CFG_GET_PICT_MAX_EXP_LC		27
-#define CFG_SEND_WB_INFO    28
-#define CFG_MAX 			29
+#define CFG_SET_MODE                0
+#define CFG_SET_EFFECT              1
+#define CFG_START                   2
+#define CFG_PWR_UP                  3
+#define CFG_PWR_DOWN                4
+#define CFG_WRITE_EXPOSURE_GAIN     5
+#define CFG_SET_DEFAULT_FOCUS       6
+#define CFG_MOVE_FOCUS              7
+#define CFG_REGISTER_TO_REAL_GAIN   8
+#define CFG_REAL_TO_REGISTER_GAIN   9
+#define CFG_SET_FPS                 10
+#define CFG_SET_PICT_FPS            11
+#define CFG_SET_BRIGHTNESS          12
+#define CFG_SET_CONTRAST            13
+#define CFG_SET_ZOOM                14
+#define CFG_SET_EXPOSURE_MODE       15
+#define CFG_SET_WB                  16
+#define CFG_SET_ANTIBANDING         17
+#define CFG_SET_EXP_GAIN            18
+#define CFG_SET_PICT_EXP_GAIN       19
+#define CFG_SET_LENS_SHADING        20
+#define CFG_GET_PICT_FPS            21
+#define CFG_GET_PREV_L_PF           22
+#define CFG_GET_PREV_P_PL           23
+#define CFG_GET_PICT_L_PF           24
+#define CFG_GET_PICT_P_PL           25
+#define CFG_GET_AF_MAX_STEPS        26
+#define CFG_GET_PICT_MAX_EXP_LC     27
 
-#define MOVE_NEAR	0
-#define MOVE_FAR	1
+#define CFG_SET_SATURATION          28
+#define CFG_SET_SHARPNESS           29
 
-#define SENSOR_PREVIEW_MODE		0
-#define SENSOR_SNAPSHOT_MODE		1
-#define SENSOR_RAW_SNAPSHOT_MODE	2
+#define CFG_SET_AF                  30
+#define CFG_SET_ISO                 31
+#define CFG_SET_EXPOSURE_COMPENSATION   32
 
-#define SENSOR_QTR_SIZE			0
-#define SENSOR_FULL_SIZE		1
-#define SENSOR_INVALID_SIZE		2
+#define CFG_SET_AEC_RIO             33
+#define CFG_SET_ANTI_SHAKE          34
+#define CFG_MAX                     35
 
-#define CAMERA_EFFECT_OFF		0
-#define CAMERA_EFFECT_MONO		1
-#define CAMERA_EFFECT_NEGATIVE		2
-#define CAMERA_EFFECT_SOLARIZE		3
-#define CAMERA_EFFECT_SEPIA		4
-#define CAMERA_EFFECT_POSTERIZE		5
-#define CAMERA_EFFECT_WHITEBOARD	6
-#define CAMERA_EFFECT_BLACKBOARD	7
-#define CAMERA_EFFECT_AQUA		8
-#define CAMERA_EFFECT_MAX		9
+#define CFG_SEND_WB_INFO            28
+
+#define MOVE_NEAR	                0
+#define MOVE_FAR	                1
+
+#define SENSOR_PREVIEW_MODE         0
+#define SENSOR_SNAPSHOT_MODE        1
+#define SENSOR_RAW_SNAPSHOT_MODE    2
+
+#define SENSOR_QTR_SIZE             0
+#define SENSOR_FULL_SIZE            1
+#define SENSOR_INVALID_SIZE         2
+
+#define CAMERA_EFFECT_OFF           0
+#define CAMERA_EFFECT_MONO          1
+#define CAMERA_EFFECT_NEGATIVE      2
+#define CAMERA_EFFECT_SOLARIZE      3
+#define CAMERA_EFFECT_SEPIA         4
+#define CAMERA_EFFECT_POSTERIZE     5
+#define CAMERA_EFFECT_WHITEBOARD    6
+#define CAMERA_EFFECT_BLACKBOARD    7
+#define CAMERA_EFFECT_AQUA          8
+
+#define CAMERA_EFFECT_BULISH	    9
+#define CAMERA_EFFECT_REDDISH	    10
+#define CAMERA_EFFECT_GREENISH	    11
+#define CAMERA_EFFECT_MAX		    12
+
+/* White Balance Modes */
+#define CAMERA_WB_MODE_AWB              1
+#define CAMERA_WB_MODE_CUSTOM           2
+#define CAMERA_WB_MODE_INCANDESCENT     3
+#define CAMERA_WB_MODE_FLUORESCENT      4
+#define CAMERA_WB_MODE_SUNLIGHT         5
+#define CAMERA_WB_MODE_CLOUDY           6
+#define CAMERA_WB_MODE_NIGHT            7
+#define CAMERA_WB_MODE_SHADE            8
+#define CAMERA_WB_MODE_MAX              9
+
+/* Brightness */
+#define CAMERA_BRIGHTNESS_0             0
+#define CAMERA_BRIGHTNESS_1             1
+#define CAMERA_BRIGHTNESS_2             2
+#define CAMERA_BRIGHTNESS_3             3
+#define CAMERA_BRIGHTNESS_4             4
+#define CAMERA_BRIGHTNESS_5             5
+#define CAMERA_BRIGHTNESS_6             6
+#define CAMERA_BRIGHTNESS_MAX           7
+
+/* Contrast */
+#define CAMERA_CONTRAST_0               0
+#define CAMERA_CONTRAST_1               1
+#define CAMERA_CONTRAST_2               2
+#define CAMERA_CONTRAST_3               3
+#define CAMERA_CONTRAST_4               4
+#define CAMERA_CONTRAST_MAX             5
+
+/* Saturation */
+#define CAMERA_SATURATION_0             0
+#define CAMERA_SATURATION_1             1
+#define CAMERA_SATURATION_2             2
+#define CAMERA_SATURATION_3             3
+#define CAMERA_SATURATION_4             4
+#define CAMERA_SATURATION_MAX           5
+
+#define CAMERA_EXPOSURE_0               0
+#define CAMERA_EXPOSURE_1               1
+#define CAMERA_EXPOSURE_2               2
+#define CAMERA_EXPOSURE_3               3
+#define CAMERA_EXPOSURE_4               4
+#define CAMERA_EXPOSURE_MAX             5
+
+#define CAMERA_ISO_SET_AUTO             0
+#define CAMERA_ISO_SET_HJR              1
+#define CAMERA_ISO_SET_100              2
+#define CAMERA_ISO_SET_200              3
+#define CAMERA_ISO_SET_400              4
+#define CAMERA_ISO_SET_800              5
+#define CAMERA_ISO_SET_MAX              6
+
+#define CAMERA_ANTIBANDING_SET_OFF      0
+#define CAMERA_ANTIBANDING_SET_60HZ     1
+#define CAMERA_ANTIBANDING_SET_50HZ     2
+#define CAMERA_ANTIBANDING_SET_AUTO     3
+#define CAMERA_ANTIBANDING_MAX          4
+
+#define CAMERA_SHARPNESS_0              0
+#define CAMERA_SHARPNESS_1              1
+#define CAMERA_SHARPNESS_2              2
+#define CAMERA_SHARPNESS_3              3
+#define CAMERA_SHARPNESS_4              4
+#define CAMERA_SHARPNESS_5              5
+#define CAMERA_SHARPNESS_6              6
+#define CAMERA_SHARPNESS_7              7
+#define CAMERA_SHARPNESS_8              8
+#define CAMERA_SHARPNESS_9              9
+#define CAMERA_SHARPNESS_10             10
+#define CAMERA_SHARPNESS_MAX            11
+
+
+#define CAMERA_ANTISHAKE_OFF            0
+#define CAMERA_ANTISHAKE_ON             1
 
 struct sensor_pict_fps {
 	uint16_t prevfps;
@@ -440,6 +533,14 @@ struct wb_info_cfg {
 	uint16_t green_gain;
 	uint16_t blue_gain;
 };
+
+typedef struct {
+	uint16_t x;
+	uint16_t y;
+ uint16_t preview_width;
+ uint16_t preview_height;
+} aec_rio_cfg;
+
 struct sensor_cfg_data {
 	int cfgtype;
 	int mode;
@@ -447,19 +548,34 @@ struct sensor_cfg_data {
 	uint8_t max_steps;
 
 	union {
-		int8_t effect;
-		uint8_t lens_shading;
-		uint16_t prevl_pf;
-		uint16_t prevp_pl;
-		uint16_t pictl_pf;
-		uint16_t pictp_pl;
-		uint32_t pict_max_exp_lc;
-		uint16_t p_fps;
-		struct sensor_pict_fps gfps;
-		struct exp_gain_cfg exp_gain;
-		struct focus_cfg focus;
-		struct fps_cfg fps;
-		struct wb_info_cfg wb_info;
+        int8_t effect;
+        uint8_t lens_shading;
+        uint16_t prevl_pf;
+        uint16_t prevp_pl;
+        uint16_t pictl_pf;
+        uint16_t pictp_pl;
+        uint32_t pict_max_exp_lc;
+        uint16_t p_fps;
+        
+        int8_t wb_mode;
+        int8_t brightness;
+        int8_t contrast;
+        int8_t saturation;
+        int8_t sharpness;
+        int8_t iso_val;
+        int8_t antibanding;
+        int8_t lensshading;
+        int8_t exposure;
+        
+        struct sensor_pict_fps gfps;
+        struct exp_gain_cfg exp_gain;
+        struct focus_cfg focus;
+        struct fps_cfg fps;
+        struct wb_info_cfg wb_info;
+        
+        aec_rio_cfg aec_rio;
+        int8_t antishake;
+
 	} cfg;
 };
 

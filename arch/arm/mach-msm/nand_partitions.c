@@ -46,7 +46,8 @@ struct msm_ptbl_entry {
 	__u32 flags;
 };
 
-#define MSM_MAX_PARTITIONS 8
+//ZTE_FOTA_MXF_20100908_01 change the max partition num from 8 to 16
+#define MSM_MAX_PARTITIONS 16
 
 static struct mtd_partition msm_nand_partitions[MSM_MAX_PARTITIONS];
 static char msm_nand_names[MSM_MAX_PARTITIONS * 16];
