@@ -2406,6 +2406,21 @@ config FB_MSM_LCDC_WXGA
 	select FB_MSM_LCDC_PANEL
 	default n
 
+config FB_MSM_LCDC_LEAD_QVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
+config FB_MSM_LCDC_HIMAX_QVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
+config FB_MSM_LCDC_SAMSUNG_QVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
 config FB_MSM_MIPI_TOSHIBA_VIDEO_WVGA_PT
 	bool
 	select FB_MSM_MIPI_DSI_TOSHIBA
@@ -2421,9 +2436,8 @@ config FB_MSM_MIPI_NOVATEK_CMD_QHD_PT
 	select FB_MSM_MIPI_DSI_NOVATEK
 	default n
 
-choice
-	prompt "LCD Panel"
-	default FB_MSM_MDDI_AUTO_DETECT
+menu "LCD Panel"
+#	default FB_MSM_MDDI_AUTO_DETECT
 
 config FB_MSM_LCDC_PRISM_WVGA_PANEL
 	depends on FB_MSM_LCDC_HW
@@ -2469,6 +2483,27 @@ config FB_MSM_LCDC_SAMSUNG_OLED_PT_PANEL
 	  .
 	  .
 	  .
+
+config FB_MSM_LCDC_LEAD_QVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC Lead QVGA Panel"
+	select FB_MSM_LCDC_LEAD_QVGA
+	---help---
+	  Support for LCDC Lead QVGA (240x320) panel
+
+config FB_MSM_LCDC_HIMAX_QVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC HIMAX QVGA Panel"
+	select FB_MSM_LCDC_HIMAX_QVGA
+	---help---
+	  Support for LCDC HIMAX QVGA (240x320) panel
+
+config FB_MSM_LCDC_SAMSUNG_QVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC SAMSUNG QVGA Panel"
+	select FB_MSM_LCDC_SAMSUNG_QVGA
+	---help---
+	  Support for LCDC SAMSUNG QVGA (240x320) panel
 
 config FB_MSM_TRY_MDDI_CATCH_LCDC_PRISM
 	depends on FB_MSM_LCDC_HW
@@ -2561,7 +2596,7 @@ config FB_MSM_PANEL_NONE
 	bool "NONE"
 	---help---
 	  This will disable LCD panel
-endchoice
+endmenu
 
 choice
 	prompt "Secondary LCD Panel"

@@ -38,6 +38,14 @@
 #include "msm_fb.h"
 #include "mdp4.h"
 
+#if (defined CONFIG_FB_MSM_LCDC_LEAD_QVGA)\
+ || (defined CONFIG_FB_MSM_LCDC_HIMAX_QVGA)\
+ || (defined CONFIG_FB_MSM_LCDC_SAMSUNG_QVGA)
+extern void lcdc_lead_sleep(void);
+extern void lcdc_truly_sleep(void);
+extern u32 LcdPanleID;
+#endif
+
 #ifdef CONFIG_FB_MSM_MDP40
 #define LCDC_BASE	0xC0000
 #define DTV_BASE	0xD0000
@@ -302,6 +310,27 @@ int mdp_lcdc_off(struct platform_device *pdev)
 		block = MDP_DMA_E_BLOCK;
 		timer_base = DTV_BASE;
 	}
+#endif
+
+#ifdef CONFIG_FB_MSM_LCDC_LEAD_QVGA
+	if(LcdPanleID==42)
+		lcdc_lead_sleep();
+	if(LcdPanleID==41)
+		lcdc_truly_sleep();
+#endif
+
+#ifdef CONFIG_FB_MSM_LCDC_HIMAX_QVGA
+	if(LcdPanleID==42)
+		lcdc_lead_sleep();
+	if(LcdPanleID==41)
+		lcdc_truly_sleep();
+#endif
+
+#ifdef CONFIG_FB_MSM_LCDC_SAMSUNG_QVGA
+	if(LcdPanleID==42)
+		lcdc_lead_sleep();
+	if(LcdPanleID==41)
+		lcdc_truly_sleep();
 #endif
 
 	/* MDP cmd block enable */

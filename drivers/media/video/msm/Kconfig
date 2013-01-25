@@ -13,14 +13,14 @@ comment "Camera Sensor Selection"
 config MT9T013
 	bool "Sensor mt9t013 (BAYER 3M)"
 	depends on MSM_CAMERA && !ARCH_MSM8X60 && !MSM_CAMERA_V4L2
-	default y
+	default n
 	---help---
 	  MICRON 3M Bayer Sensor with AutoFocus
 
 config MT9D112
 	bool "Sensor mt9d112 (YUV 2M)"
 	depends on MSM_CAMERA && !ARCH_MSM8X60 && !MSM_CAMERA_V4L2
-	default y
+	default n
 	---help---
 	  MICRON 2M YUV Sensor
 config IMX074
@@ -53,7 +53,7 @@ config SN12M0PZ
 config MT9P012
 	bool "Sensor mt9p012 (BAYER 5M)"
 	depends on MSM_CAMERA && !ARCH_MSM8X60 && !MSM_CAMERA_V4L2
-	default y
+	default n
 	---help---
 	  MICRON 5M Bayer Sensor with Autofocus
 
@@ -77,7 +77,7 @@ endchoice
 config MT9P012_KM
 	bool "Sensor mt9p012 KM module (BAYER 5M)"
 	depends on MSM_CAMERA && !ARCH_MSM8X60 && !MSM_CAMERA_V4L2
-	default y
+	default n
 	---help---
 	  MICRON 5M Bayer Sensor KM modules with Autofocus
 
@@ -91,7 +91,7 @@ config MT9E013
 config S5K3E2FX
 	bool "Sensor s5k3e2fx (Samsung 5M)"
 	depends on MSM_CAMERA && !ARCH_MSM8X60 && !MSM_CAMERA_V4L2
-	default y
+	default n
 	---help---
 	  Samsung 5M with Autofocus
 
@@ -104,7 +104,7 @@ config VB6801
 config MSM_CAMERA_FLASH
 	bool "Qualcomm MSM camera flash support"
 	depends on MSM_CAMERA
-	default y
+	default n
 	---help---
 	  Enable support for LED flash for msm camera
 

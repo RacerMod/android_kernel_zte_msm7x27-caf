@@ -77,8 +77,8 @@ static int lcdc_off(struct platform_device *pdev)
 	if (lcdc_pdata && lcdc_pdata->lcdc_power_save)
 		lcdc_pdata->lcdc_power_save(0);
 
-	if (lcdc_pdata && lcdc_pdata->lcdc_gpio_config)
-		ret = lcdc_pdata->lcdc_gpio_config(0);
+/*	if (lcdc_pdata && lcdc_pdata->lcdc_gpio_config)
+		ret = lcdc_pdata->lcdc_gpio_config(0);*/
 
 #ifndef CONFIG_MSM_BUS_SCALING
 	if (mfd->ebi1_clk)

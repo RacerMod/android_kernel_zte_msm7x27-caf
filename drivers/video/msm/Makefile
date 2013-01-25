@@ -125,6 +125,10 @@ obj-$(CONFIG_FB_MSM_LCDC_QRDC_WXGA) += lcdc_qrdc.o
 obj-$(CONFIG_FB_MSM_HDMI_MSM_PANEL) += hdmi_msm.o
 obj-$(CONFIG_FB_MSM_EXT_INTERFACE_COMMON) += external_common.o
 
+obj-$(CONFIG_FB_MSM_LCDC_LEAD_QVGA) += lcdc_panel_qvga_lead.o
+obj-$(CONFIG_FB_MSM_LCDC_HIMAX_QVGA) += lcdc_panel_qvga_himax.o
+obj-$(CONFIG_FB_MSM_LCDC_SAMSUNG_QVGA) += lcdc_panel_qvga_samsung.o
+
 obj-$(CONFIG_FB_MSM_TVOUT) += tvout_msm.o
 
 obj-$(CONFIG_FB_MSM_EXTMDDI_SVGA) += mddi_ext_lcd.o
