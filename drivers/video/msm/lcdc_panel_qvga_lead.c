@@ -56,7 +56,7 @@ extern u32 LcdPanleID; //ZTE_LCD_LHT_20100611_001
 static struct msm_panel_common_pdata * lcdc_lead_pdata;
 static void gpio_lcd_emuspi_write_one_para(unsigned short addr, unsigned short para);
 //static void lcdc_lead_wakeup(void);
-static void lcdc_lead_sleep(void);
+void lcdc_lead_sleep(void);
 static void lcdc_lead_init(void);
 static void lcdc_set_bl(struct msm_fb_data_type *mfd);
 
@@ -80,7 +80,7 @@ static int lcdc_panel_on(struct platform_device *pdev)
 	return 0;
 }
 
-static void lcdc_lead_sleep(void)
+void lcdc_lead_sleep(void)
 {
 	gpio_lcd_emuspi_write_one_para(0x0007,0x0131); 
 	mdelay(10);
