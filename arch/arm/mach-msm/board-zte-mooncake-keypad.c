@@ -97,20 +97,8 @@ struct platform_device keypad_device_mooncake = {
 	},
 };
 
-/* ZTE_FTM_MODE_WLY_001, @2009-12-11, START */
-#ifdef CONFIG_ZTE_FTM_FLAG_SUPPORT
-extern int zte_get_ftm_flag(void);
-#endif
-/* ZTE_FTM_MODE_WLY_001, @2009-12-11, END */
 static int __init mooncake_init_keypad(void)
 {
-/* ZTE_FTM_MODE_WLY_001, @2009-12-11, START */
-#ifdef CONFIG_ZTE_FTM_FLAG_SUPPORT
-	int ftm_flag;
-	ftm_flag = zte_get_ftm_flag();
-	if (1 == ftm_flag)return 0;
-#endif
-/* ZTE_FTM_MODE_WLY_001, @2009-12-11, START */
 	mooncake_keypad_matrix_info.keymap = keypad_keymap_mooncake;
 #ifdef CONFIG_MSM_GPIO_WAKE
 	p_keypad_keymap = mooncake_keypad_matrix_info.keymap; //LHX_PM_20110506_01 get which GPIO for BACK HOME MENU

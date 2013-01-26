@@ -58,7 +58,6 @@
 #include <linux/android_pmem.h>
 #include <mach/camera.h>
 #include <linux/proc_fs.h>
-#include <mach/zte_memlog.h>
 #include "devices.h"
 #include "clock.h"
 #include "msm-keypad-devices.h"
@@ -89,12 +88,6 @@
 #ifdef CONFIG_ANDROID_RAM_CONSOLE
 #define MSM_RAM_CONSOLE_PHYS	(PHYS_OFFSET - 0x100000)
 #define MSM_RAM_CONSOLE_SIZE	SZ_1M
-#endif
-
-static smem_global *global;
-
-#ifdef CONFIG_ZTE_PLATFORM
-static int g_zte_ftm_flag_fixup;
 #endif
 
 static struct resource smc91x_resources[] = {
@@ -2384,10 +2377,6 @@ static void __init msm7x2x_init(void)
 {
 	struct proc_dir_entry *entry;
 
-#ifdef CONFIG_ZTE_FTM_FLAG_SUPPORT
-	zte_ftm_set_value(g_zte_ftm_flag_fixup);
-#endif
-
 	if (socinfo_init() < 0)
 		BUG();
 #ifdef CONFIG_ARCH_MSM7X27
@@ -2573,13 +2562,6 @@ static void __init msm_msm7x2x_allocate_memory_regions(void)
 	void *addr;
 	unsigned long size;
 
-#if defined (CONFIG_ZTE_PLATFORM) && defined (CONFIG_F3_LOG)
-	unsigned int len;
-	smem_global *global_tmp = (smem_global *)(MSM_RAM_LOG_BASE + PAGE_SIZE) ;
-
-	len = global_tmp->f3log;
-#endif
-
 	size = pmem_mdp_size;
 	if (size) {
 		addr = alloc_bootmem(size);
@@ -2619,24 +2601,6 @@ static void __init msm_msm7x2x_allocate_memory_regions(void)
 		pr_info("allocating %lu bytes at %p (%lx physical) for kernel"
 			" ebi1 pmem arena\n", size, addr, __pa(addr));
 	}
-
-#if defined (CONFIG_ZTE_PLATFORM) && defined (CONFIG_F3_LOG)
-	pr_info("length = %d ++ \n", len);
-
-	if (len > 12)
-		len = 12;
-	else
-		len = len/2*2;
-
-	pr_info("length = %d -- \n", len);
-	size = len;
-
-	if (size)
-		reserve_bootmem(0x08D00000, size*0x100000, BOOTMEM_DEFAULT);
-
-	addr = phys_to_virt(0x08D00000);
-	pr_info("allocating %lu M at %p (%lx physical) for F3\n",size, addr, __pa(addr));
-#endif
 }
 
 static void __init msm7x2x_map_io(void)
@@ -2649,48 +2613,8 @@ static void __init msm7x2x_map_io(void)
 #endif
 }
 
-//ruanmeisi
-#ifdef CONFIG_ZTE_PLATFORM
-#define ATAG_ZTEFTM 0x5d53cd73
-static int  parse_tag_zteftm(const struct tag *tags)
-{
-	int flag = 0, find = 0;
-	struct tag *t = (struct tag *)tags;
-
-	for (; t->hdr.size; t = tag_next(t)) {
-		if (t->hdr.tag == ATAG_ZTEFTM) {
-			printk(KERN_DEBUG "find the zte ftm tag\n");
-			find = 1;
-			break;
-		}
-	}
-
-	if (find)
-		flag = t->u.revision.rev;
-	printk(KERN_INFO "[ZYF@FTM]parse_tag_zteftm: zte FTM %s !\n",
-			flag?"enable":"disable");
-	return flag;
-}
-
-static void __init zte_fixup(struct machine_desc *desc, struct tag *tags,
-			     char **cmdline, struct meminfo *mi)
-{
-	g_zte_ftm_flag_fixup = parse_tag_zteftm((const struct tag *)tags);
-}
-
-int get_ftm_from_tag(void)
-{
-	return g_zte_ftm_flag_fixup;
-}
-EXPORT_SYMBOL(get_ftm_from_tag);
-#endif
-//end
-
 MACHINE_START(MOONCAKE, "mooncake ZTE handset")
 	.atag_offset	= 0x100,
-#ifdef CONFIG_ZTE_PLATFORM
-	.fixup		= zte_fixup,
-#endif
 	.map_io		= msm7x2x_map_io,
 	.init_irq	= msm7x2x_init_irq,
 	.init_machine	= msm7x2x_init,

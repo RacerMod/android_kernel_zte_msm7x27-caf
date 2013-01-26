@@ -194,14 +194,6 @@ config ZTE_PLATFORM
 	default y
 	help
 	  Global macro for ZTE code
-	  
-config F3_LOG
-	depends on ARCH_MSM
-	depends on !MSM_STACKED_MEMORY
-	default y
-	bool "F3 Log"
-	help
-	  Support for F3 log.
 
 config MACH_MOONCAKE
 	depends on ARCH_MSM7X27
@@ -211,11 +203,6 @@ config MACH_MOONCAKE
 	select ZTE_PLATFORM
 	help
 	  Support for the ZTE MSM7x27 mooncake phone.
-
-config ZTE_FTM_FLAG_SUPPORT
-	depends on ZTE_PLATFORM
-	default y
-	bool "enable ZTE handset FTM mode detect."
 
 config MACH_MSM7X30_SURF
        depends on ARCH_MSM7X30
