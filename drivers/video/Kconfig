@@ -2255,6 +2255,26 @@ config FB_MSM_LCDC_TOSHIBA_WVGA_PT
 	select FB_MSM_LCDC_PANEL
 	default n
 
+config FB_MSM_LCDC_LEAD_QVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
+config FB_MSM_LCDC_HIMAX_QVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
+config FB_MSM_LCDC_SAMSUNG_QVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
+config FB_MSM_LCDC_OLED_WVGA
+	bool
+	select FB_MSM_LCDC_PANEL
+	default n
+
 config FB_MSM_LCDC_SHARP_WVGA_PT
 	bool
 	select FB_MSM_LCDC_PANEL
@@ -2265,9 +2285,8 @@ config FB_MSM_LCDC_WXGA
 	select FB_MSM_LCDC_PANEL
 	default n
 
-choice
-	prompt "LCD Panel"
-	default FB_MSM_MDDI_AUTO_DETECT
+menu "LCD Panel"
+#	default FB_MSM_MDDI_AUTO_DETECT
 
 config FB_MSM_LCDC_PRISM_WVGA_PANEL
 	depends on FB_MSM_LCDC_HW
@@ -2282,6 +2301,34 @@ config FB_MSM_LCDC_GORDON_VGA_PANEL
 	select FB_MSM_LCDC_GORDON_VGA
 	---help---
 	  Support for LCDC Gordon VGA (480x640) panel
+
+config FB_MSM_LCDC_LEAD_QVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC Lead QVGA Panel"
+	select FB_MSM_LCDC_LEAD_QVGA
+	---help---
+	  Support for LCDC Lead QVGA (240x320) panel
+
+config FB_MSM_LCDC_HIMAX_QVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC HIMAX QVGA Panel"
+	select FB_MSM_LCDC_HIMAX_QVGA
+	---help---
+	  Support for LCDC HIMAX QVGA (240x320) panel
+
+config FB_MSM_LCDC_SAMSUNG_QVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC SAMSUNG QVGA Panel"
+	select FB_MSM_LCDC_SAMSUNG_QVGA
+	---help---
+	  Support for LCDC SAMSUNG QVGA (240x320) panel
+
+config FB_MSM_LCDC_OLED_WVGA_PANEL
+	depends on FB_MSM_LCDC_HW
+	bool "LCDC Oled WVGA Panel"
+	select FB_MSM_LCDC_OLED_WVGA
+	---help---
+	  Support for LCDC Samsung Oled WVGA (480x800) panel
 
 config FB_MSM_LCDC_TOSHIBA_WVGA_PT_PANEL
 	depends on FB_MSM_LCDC_HW
@@ -2356,7 +2403,7 @@ config FB_MSM_PANEL_NONE
 	bool "NONE"
 	---help---
 	  This will disable LCD panel
-endchoice
+endmenu
 
 choice
 	prompt "Secondary LCD Panel"

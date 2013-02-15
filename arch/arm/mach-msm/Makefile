@@ -91,9 +91,12 @@ obj-$(CONFIG_MACH_QSD8X50A_FFA) += board-qsd8x50.o
 obj-$(CONFIG_TROUT_H2W) += board-trout-h2w.o
 obj-$(CONFIG_TROUT_BATTCHG) += htc_battery.o
 obj-$(CONFIG_TROUT_PWRSINK) += htc_pwrsink.o
-obj-$(CONFIG_ARCH_MSM7X27) += board-msm7x27.o
+#obj-$(CONFIG_ARCH_MSM7X27) += board-msm7x27.o
 obj-$(CONFIG_ARCH_MSM7X30) += board-msm7x30.o clock-7x30.o
 obj-$(CONFIG_ARCH_MSM7X25) += board-msm7x27.o
+
+obj-$(CONFIG_MACH_MOONCAKE) += board-zte-mooncake.o board-zte-mooncake-keypad.o msm_vibrator.o
+obj-$(CONFIG_MACH_BLADE) += board-zte-blade.o board-zte-blade-keypad.o msm_vibrator.o
 
 obj-$(CONFIG_MACH_SAPPHIRE) += board-sapphire.o board-sapphire-gpio.o
 obj-$(CONFIG_MACH_SAPPHIRE) += board-sapphire-keypad.o board-sapphire-panel.o

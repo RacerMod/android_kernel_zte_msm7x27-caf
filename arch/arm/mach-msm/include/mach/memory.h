@@ -39,7 +39,7 @@ void write_to_strongly_ordered_memory(void);
 #include <asm/mach-types.h>
 
 #define arch_barrier_extra() do \
-	{ if (machine_is_msm7x27_surf() || machine_is_msm7x27_ffa())  \
+	{ \
 		write_to_strongly_ordered_memory(); \
 	} while (0)
 #endif

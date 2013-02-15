@@ -43,6 +43,11 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+/* ========================================================================================
+when         who        what, where, why                             comment tag
+--------     ----       -----------------------------                ----------------------
+2010-02-02   rms        fsg_main_thread exit fail                    ruanmeisi_100203
+==========================================================================================*/
 //#define DEBUG
 //#define VERBOSE_DEBUG
 //#define DUMP_MSGS
@@ -325,6 +330,7 @@ struct fsg_dev {
 
 	int			thread_wakeup_needed;
 	struct completion	thread_notifier;
+	struct completion	thread_notifier_exit; //ruanmeisi_100203
 	struct task_struct	*thread_task;
 
 	int			cmnd_size;
@@ -2475,7 +2481,9 @@ static int fsg_main_thread(void *fsg_)
 		close_all_backing_files(fsg);
 
 	/* Let the unbind and cleanup routines know the thread has exited */
-	complete_and_exit(&fsg->thread_notifier, 0);
+	//ruanmeisi_100203
+	complete(&fsg->thread_notifier);
+	complete_and_exit(&fsg->thread_notifier_exit, 0);
 }
 
 
@@ -2814,6 +2822,7 @@ static void fsg_bind(void *_ctxt)
 	fsg->buffhds[NUM_BUFFERS - 1].next = &fsg->buffhds[0];
 
 	fsg->state = FSG_STATE_IDLE;
+	init_completion(&fsg->thread_notifier_exit); //ruanmeisi_100203
 	fsg->thread_task = kthread_create(fsg_main_thread, fsg,
 			"USB mass_storage");
 	if (IS_ERR(fsg->thread_task)) {
@@ -2915,6 +2924,7 @@ static int __init fsg_alloc(void)
 	init_rwsem(&fsg->filesem);
 	kref_init(&fsg->ref);
 	init_completion(&fsg->thread_notifier);
+	init_completion(&fsg->thread_notifier_exit); //ruanmeisi_100203
 
 	the_fsg = fsg;
 	return 0;
@@ -2938,6 +2948,7 @@ static int __exit fsg_remove(struct platform_device *pdev)
 	wake_lock_destroy(&fsg->wake_lock_idle);
 	switch_dev_unregister(&fsg->sdev);
 	test_and_clear_bit(REGISTERED, &fsg->atomic_bitflags);
+	wait_for_completion(&fsg->thread_notifier_exit); //ruanmeisi_100203
 	close_all_backing_files(fsg);
 	kref_put(&fsg->ref, fsg_release);
 

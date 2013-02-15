@@ -29,9 +29,17 @@
 #include <mach/board.h>
 #include <media/msm_camera.h>
 
+#undef CCRT
+#undef CINF
+#undef CDBG
 #ifdef CONFIG_MSM_CAMERA_DEBUG
-#define CDBG(fmt, args...) printk(KERN_INFO "msm_camera: " fmt, ##args)
+#define CPREFIX "[jia@msm_camera]"
+#define CCRT(fmt, args...) printk(KERN_CRIT CPREFIX": " fmt, ##args)
+#define CINF(fmt, args...) printk(KERN_CRIT CPREFIX": " fmt, ##args)
+#define CDBG(fmt, args...) printk(KERN_CRIT CPREFIX": " fmt, ##args)
 #else
+#define CCRT(fmt, args...) do { } while (0)
+#define CINF(fmt, args...) do { } while (0)
 #define CDBG(fmt, args...) do { } while (0)
 #endif
 
@@ -160,6 +168,7 @@ struct msm_sync {
 	struct msm_camera_sensor_info *sdata;
 	struct msm_camvfe_fn vfefn;
 	struct msm_sensor_ctrl sctrl;
+	struct wake_lock wake_suspend_lock;
 	struct wake_lock wake_lock;
 	struct platform_device *pdev;
 	uint8_t opencnt;
@@ -260,6 +269,13 @@ int msm_camera_drv_start(struct platform_device *dev,
 		int (*sensor_probe)(const struct msm_camera_sensor_info *,
 					struct msm_sensor_ctrl *));
 
+#if defined(CONFIG_SENSOR_ADAPTER)
+int msm_camera_dev_start(struct platform_device *dev,
+                                 int (*i2c_dev_probe_on)(void),
+                                 void (*i2c_dev_probe_off)(void),
+                                 int (*sensor_dev_probe)(const struct msm_camera_sensor_info *));
+#endif
+
 enum msm_camio_clk_type {
 	CAMIO_VFE_MDC_CLK,
 	CAMIO_MDC_CLK,
@@ -309,6 +325,14 @@ enum msm_s_reg_update {
 enum msm_s_setting {
 	S_RES_PREVIEW,
 	S_RES_CAPTURE
+};
+
+enum msm_camera_pwr_mode_t {
+    MSM_CAMERA_PWRUP_MODE = 0,
+    MSM_CAMERA_STANDBY_MODE,
+    MSM_CAMERA_NORMAL_MODE,
+    MSM_CAMERA_PWRDWN_MODE,
+    MSM_CAMERA_PWR_MODE_MAX
 };
 
 int msm_camio_enable(struct platform_device *dev);

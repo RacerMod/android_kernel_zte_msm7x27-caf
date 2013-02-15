@@ -118,8 +118,8 @@ static int lcdc_off(struct platform_device *pdev)
 	if (lcdc_pdata && lcdc_pdata->lcdc_power_save)
 		lcdc_pdata->lcdc_power_save(0);
 
-	if (lcdc_pdata && lcdc_pdata->lcdc_gpio_config)
-		ret = lcdc_pdata->lcdc_gpio_config(0);
+//	if (lcdc_pdata && lcdc_pdata->lcdc_gpio_config)
+//		ret = lcdc_pdata->lcdc_gpio_config(0);
 
 	pm_qos_update_requirement(PM_QOS_SYSTEM_BUS_FREQ , "lcdc",
 					PM_QOS_DEFAULT_VALUE);

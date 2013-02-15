@@ -237,7 +237,7 @@ static int msm_fb_probe(struct platform_device *pdev)
 		return -ENOMEM;
 
 	mfd->panel_info.frame_count = 0;
-	mfd->bl_level = mfd->panel_info.bl_max;
+	mfd->bl_level = mfd->panel_info.bl_max/4;
 #ifdef CONFIG_FB_MSM_OVERLAY
 	mfd->overlay_play_enable = 1;
 #endif
@@ -523,9 +523,9 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 	switch (blank_mode) {
 	case FB_BLANK_UNBLANK:
 		if (!mfd->panel_power_on) {
-			mdelay(100);
 			ret = pdata->on(mfd->pdev);
 			if (ret == 0) {
+				mdelay(30);			
 				mfd->panel_power_on = TRUE;
 
 				msm_fb_set_backlight(mfd,
@@ -555,6 +555,7 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 
 			mfd->op_enable = FALSE;
 			curr_pwr_state = mfd->panel_power_on;
+			msm_fb_set_backlight(mfd, 0, 0);		
 			mfd->panel_power_on = FALSE;
 
 			mdelay(100);
@@ -562,7 +563,6 @@ static int msm_fb_blank_sub(int blank_mode, struct fb_info *info,
 			if (ret)
 				mfd->panel_power_on = curr_pwr_state;
 
-			msm_fb_set_backlight(mfd, 0, 0);
 			mfd->op_enable = TRUE;
 		}
 		break;
@@ -871,9 +871,9 @@ static int msm_fb_register(struct msm_fb_data_type *mfd)
 	   is writing directly to fb0, the framebuffer pitch
 	   also needs to be 32 pixel aligned */
 
-	if (mfd->index == 0)
-		fix->line_length = ALIGN(panel_info->xres, 32) * bpp;
-	else
+//	if (mfd->index == 0)
+//		fix->line_length = ALIGN(panel_info->xres, 32) * bpp;
+//	else
 		fix->line_length = panel_info->xres * bpp;
 
 	fix->smem_len = fix->line_length * panel_info->yres * mfd->fb_page;

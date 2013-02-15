@@ -149,6 +149,8 @@ struct mmc_host {
 
 	wait_queue_head_t	wq;
 
+	struct task_struct	*claimer;	 
+	int			claim_cnt;	 
 	struct delayed_work	detect;
 
 	const struct mmc_bus_ops *bus_ops;	/* current bus driver */
@@ -180,6 +182,7 @@ struct mmc_host {
 	int			idle_timeout;
 	unsigned long		auto_suspend_state;
 #endif
+	int    last_suspend_error;
 	unsigned long		private[0] ____cacheline_aligned;
 };
 

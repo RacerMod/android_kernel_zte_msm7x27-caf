@@ -131,7 +131,7 @@ static enum hrtimer_restart gpio_keypad_timer_func(struct hrtimer *timer)
 	struct gpio_kp *kp = container_of(timer, struct gpio_kp, timer);
 	struct gpio_event_matrix_info *mi = kp->keypad_info;
 	unsigned gpio_keypad_flags = mi->flags;
-	unsigned polarity = !!(gpio_keypad_flags & GPIOKPF_ACTIVE_HIGH);
+	unsigned polarity = !!(gpio_keypad_flags & !GPIOKPF_ACTIVE_HIGH);
 
 	out = kp->current_output;
 	if (out == mi->noutputs) {
@@ -218,7 +218,7 @@ static irqreturn_t gpio_keypad_irq_handler(int irq_in, void *dev_id)
 	for (i = 0; i < mi->noutputs; i++) {
 		if (gpio_keypad_flags & GPIOKPF_DRIVE_INACTIVE)
 			gpio_set_value(mi->output_gpios[i],
-				!(gpio_keypad_flags & GPIOKPF_ACTIVE_HIGH));
+				(gpio_keypad_flags & GPIOKPF_ACTIVE_HIGH));
 		else
 			gpio_direction_input(mi->output_gpios[i]);
 	}
@@ -246,7 +246,7 @@ static int gpio_keypad_request_irqs(struct gpio_kp *kp)
 		request_flags = IRQF_TRIGGER_LOW;
 		break;
 	case GPIOKPF_LEVEL_TRIGGERED_IRQ | GPIOKPF_ACTIVE_HIGH:
-		request_flags = IRQF_TRIGGER_HIGH;
+		request_flags = IRQF_TRIGGER_LOW;
 		break;
 	}
 
@@ -261,11 +261,13 @@ static int gpio_keypad_request_irqs(struct gpio_kp *kp)
 				"irq %d\n", mi->input_gpios[i], irq);
 			goto err_request_irq_failed;
 		}
+#ifndef CONFIG_ZTE_PLATFORM
 		err = set_irq_wake(irq, 1);
 		if (err) {
 			pr_err("gpiomatrix: set_irq_wake failed for input %d, "
 				"irq %d\n", mi->input_gpios[i], irq);
 		}
+#endif
 		disable_irq(irq);
 	}
 	return 0;
@@ -334,7 +336,7 @@ int gpio_event_matrix_func(struct input_dev *input_dev,
 			}
 			if (mi->flags & GPIOKPF_DRIVE_INACTIVE)
 				err = gpio_direction_output(mi->output_gpios[i],
-					!(mi->flags & GPIOKPF_ACTIVE_HIGH));
+					(mi->flags & GPIOKPF_ACTIVE_HIGH));
 			else
 				err = gpio_direction_input(mi->output_gpios[i]);
 			if (err) {
