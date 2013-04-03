@@ -205,7 +205,7 @@ config MACH_TROUT
 config MACH_MSM7X27_SURF
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
-	default y
+	default n
 	bool "MSM7x27 SURF"
 	help
 	  Support for the Qualcomm MSM7x27 SURF eval board.
@@ -213,10 +213,25 @@ config MACH_MSM7X27_SURF
 config MACH_MSM7X27_FFA
 	depends on ARCH_MSM7X27
 	depends on !MSM_STACKED_MEMORY
-	default y
+	default n
 	bool "MSM7x27 FFA"
 	help
 	  Support for the Qualcomm MSM7x27 FFA eval board.
+
+config ZTE_PLATFORM
+	bool "ZTE Platform"
+	default y
+	help
+	  Global macro for ZTE code
+
+config MACH_BLADE
+	depends on ARCH_MSM7X27
+	depends on !MSM_STACKED_MEMORY
+	default n
+	bool "ZTE BLADE"
+	select ZTE_PLATFORM
+	help
+	  Support for the ZTE MSM7x27 Blade phone.
 
 config MACH_MSM7X27A_RUMI3
         depends on ARCH_MSM7X27A
@@ -491,6 +506,7 @@ config PHYS_OFFSET
 	hex
 	default "0x40200000" if ARCH_MSM8960
 	default "0x00200000" if !MSM_STACKED_MEMORY
+	default "0x02600000" if !MSM_STACKED_MEMORY && ZTE_PLATFORM
 	default "0x00000000" if ARCH_QSD8X50 && MSM_SOC_REV_A
 	default "0x20000000" if ARCH_QSD8X50
 	default "0x40200000" if ARCH_MSM8X60

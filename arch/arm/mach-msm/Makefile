@@ -164,6 +164,7 @@ obj-$(CONFIG_TROUT_BATTCHG) += htc_battery.o
 obj-$(CONFIG_TROUT_PWRSINK) += htc_pwrsink.o
 obj-$(CONFIG_MACH_MSM7X27_SURF) += board-msm7x27.o devices-msm7x27.o
 obj-$(CONFIG_MACH_MSM7X27_FFA) += board-msm7x27.o devices-msm7x27.o
+obj-$(CONFIG_MACH_BLADE) += board-zte-blade.o devices-msm7x27.o
 obj-$(CONFIG_MACH_MSM7X27A_RUMI3) += board-msm7x27a.o devices-msm7x27a.o
 obj-$(CONFIG_MACH_MSM7X27A_SURF) += board-msm7x27a.o devices-msm7x27a.o
 obj-$(CONFIG_MACH_MSM7X27A_FFA) += board-msm7x27a.o devices-msm7x27a.o
